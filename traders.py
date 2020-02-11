@@ -34,6 +34,8 @@ class Trader:
                 self.n_trades = 0       # how many trades has this trader done?
                 self.lastquote = None   # record of what its last quote was
 
+                self.opinion = 0        # opinion between [0,1]
+
 
         def __str__(self):
                 return '[TID %s type %s balance %s blotter %s orders %s n_trades %s profitpertime %s]' \
@@ -96,7 +98,11 @@ class Trader:
         def mutate(self, time, lob, trade, verbose):
                 return None
 
+        def get_opinion(self):
+            return self.opinion
 
+        def set_opinion(self, updated_opinion):
+            self.opinion = updated_opinion
 
 # Trader subclass Giveaway
 # even dumber than a ZI-U: just give the deal away

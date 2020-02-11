@@ -768,7 +768,20 @@ def market_session(sess_id, starttime, endtime, trader_spec, order_schedule, dum
         # write trade_stats for this experiment NB end-of-session summary only
         trade_stats(sess_id, traders, tdump, time, exchange.publish_lob(time, lob_verbose))
 
+#############################
 
+# # Opinion dynamics models
+
+# bounded confidence model
+# (w, delta, k) are confidence factor, deviation threshold and time step respectively
+def bounded_confidence(w, delta, k, traders):
+    # get two traders i and j
+    i, j = random.sample(list(traders.keys()), 2)
+
+    X_i = traders[i].get_opinion()
+    X_j = traders[j].get_opinion()
+
+    
 
 #############################
 
@@ -780,7 +793,7 @@ if __name__ == "__main__":
         # set up parameters for the session
 
         start_time = 0.0
-        end_time = 600.0
+        end_time = 180.0
         duration = end_time - start_time
 
 
@@ -806,18 +819,23 @@ if __name__ == "__main__":
 
 
 
-        range1 = (95, 95, schedule_offsetfn)
+        # range1 = (95, 95, schedule_offsetfn)
+        range1 = (0, 200)
         supply_schedule = [ {'from':start_time, 'to':end_time, 'ranges':[range1], 'stepmode':'fixed'}
                           ]
 
-        range1 = (105, 105, schedule_offsetfn)
+        # range1 = (105, 105, schedule_offsetfn)
+        range1 = (0, 200)
         demand_schedule = [ {'from':start_time, 'to':end_time, 'ranges':[range1], 'stepmode':'fixed'}
                           ]
 
+        # order_sched = {'sup':supply_schedule, 'dem':demand_schedule,
+        #                'interval':30, 'timemode':'drip-poisson'}
         order_sched = {'sup':supply_schedule, 'dem':demand_schedule,
-                       'interval':30, 'timemode':'drip-poisson'}
+                       'interval':30, 'timemode':'periodic'}
 
-        buyers_spec = [('GVWY',10),('SHVR',10),('ZIC',10),('ZIP',10)]
+        # buyers_spec = [('GVWY',10),('SHVR',10),('ZIC',10),('ZIP',10)]
+        buyers_spec = [('GVWY', 31)]
         sellers_spec = buyers_spec
         traders_spec = {'sellers':sellers_spec, 'buyers':buyers_spec}
 
