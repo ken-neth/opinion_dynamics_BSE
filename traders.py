@@ -20,7 +20,7 @@ import random
 # all Traders have a trader id, bank balance, blotter, and list of orders to execute
 class Trader:
 
-        def __init__(self, ttype, tid, balance, time):
+        def __init__(self, ttype, tid, balance, time, opinion):
                 self.ttype = ttype      # what type / strategy this trader is
                 self.tid = tid          # trader unique ID code
                 self.balance = balance  # money in the bank

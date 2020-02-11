@@ -403,15 +403,15 @@ def populate_market(traders_spec, traders, shuffle, verbose):
 
         def trader_type(robottype, name):
                 if robottype == 'GVWY':
-                        return Trader_Giveaway('GVWY', name, 0.00, 0)
+                        return Trader_Giveaway('GVWY', name, 0.00, 0, random.uniform(0, 1))
                 elif robottype == 'ZIC':
-                        return Trader_ZIC('ZIC', name, 0.00, 0)
+                        return Trader_ZIC('ZIC', name, 0.00, 0, random.uniform(0, 1))
                 elif robottype == 'SHVR':
-                        return Trader_Shaver('SHVR', name, 0.00, 0)
+                        return Trader_Shaver('SHVR', name, 0.00, 0, random.uniform(0, 1))
                 elif robottype == 'SNPR':
-                        return Trader_Sniper('SNPR', name, 0.00, 0)
+                        return Trader_Sniper('SNPR', name, 0.00, 0, random.uniform(0, 1))
                 elif robottype == 'ZIP':
-                        return Trader_ZIP('ZIP', name, 0.00, 0)
+                        return Trader_ZIP('ZIP', name, 0.00, 0, random.uniform(0, 1))
                 else:
                         sys.exit('FATAL: don\'t know robot type %s\n' % robottype)
 
@@ -758,7 +758,12 @@ def market_session(sess_id, starttime, endtime, trader_spec, order_schedule, dum
                                 # sequence (rather than random/shuffle) isn't a problem
                                 traders[t].respond(time, lob, trade, respond_verbose)
 
+                # Communicate and update opinions
+                bounded_confidence_step(0.5, 1, time, traders)
+
+
                 time = time + timestep
+
 
 
         # end of an experiment -- dump the tape
@@ -774,14 +779,24 @@ def market_session(sess_id, starttime, endtime, trader_spec, order_schedule, dum
 
 # bounded confidence model
 # (w, delta, k) are confidence factor, deviation threshold and time step respectively
-def bounded_confidence(w, delta, k, traders):
+def bounded_confidence_step(w, delta, k, traders):
     # get two traders i and j
     i, j = random.sample(list(traders.keys()), 2)
 
     X_i = traders[i].get_opinion()
     X_j = traders[j].get_opinion()
 
-    
+    # if difference in opinion is within deviation threshold
+    if abs(X_i - X_j) <= delta:
+
+        # trader i update
+        i_update = w * X_i + (1 - w) * X_j
+        traders[i].set_opinion(i_update)
+
+        # trader j update
+        j_update = w * X_j + (1 - w) * X_i
+        traders[j].set_opinion(j_update)
+
 
 #############################
 
@@ -835,7 +850,7 @@ if __name__ == "__main__":
                        'interval':30, 'timemode':'periodic'}
 
         # buyers_spec = [('GVWY',10),('SHVR',10),('ZIC',10),('ZIP',10)]
-        buyers_spec = [('GVWY', 31)]
+        buyers_spec = [('SNPR', 31)]
         sellers_spec = buyers_spec
         traders_spec = {'sellers':sellers_spec, 'buyers':buyers_spec}
 
