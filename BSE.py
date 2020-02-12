@@ -425,15 +425,15 @@ def populate_market(traders_spec, traders, shuffle, verbose):
 
         def trader_type(robottype, name):
                 if robottype == 'GVWY':
-                        return Trader_Giveaway('GVWY', name, 0.00, 0, random.uniform(0, 1))
+                        return Trader_Giveaway('GVWY', name, 0.00, 0, random.uniform(0, 1), random.uniform(0, 2))
                 elif robottype == 'ZIC':
-                        return Trader_ZIC('ZIC', name, 0.00, 0, random.uniform(0, 1))
+                        return Trader_ZIC('ZIC', name, 0.00, 0, random.uniform(0, 1), random.uniform(0, 2))
                 elif robottype == 'SHVR':
-                        return Trader_Shaver('SHVR', name, 0.00, 0, random.uniform(0, 1))
+                        return Trader_Shaver('SHVR', name, 0.00, 0, random.uniform(0, 1), random.uniform(0, 2))
                 elif robottype == 'SNPR':
-                        return Trader_Sniper('SNPR', name, 0.00, 0, random.uniform(0, 1))
+                        return Trader_Sniper('SNPR', name, 0.00, 0, random.uniform(0, 1), random.uniform(0, 2))
                 elif robottype == 'ZIP':
-                        return Trader_ZIP('ZIP', name, 0.00, 0, random.uniform(0,1))
+                        return Trader_ZIP('ZIP', name, 0.00, 0, random.uniform(0,1), random.uniform(0, 2))
                 else:
                         sys.exit('FATAL: don\'t know robot type %s\n' % robottype)
 
@@ -820,6 +820,33 @@ def bounded_confidence_step(w, delta, k, traders):
         j_update = w * X_j + (1 - w) * X_i
         traders[j].set_opinion(j_update)
 
+
+def relative_agreement_step(weight, traders):
+    i, j = random.sample(list(traders.keys()), 2)
+
+    X_i = traders[i].opinion
+    u_i = traders[i].uncertainty
+
+    X_j = traders[j].opinion
+    u_j = traders[j].uncertainty
+
+    # Calculate overlap
+    h_ij = min((X_i + u_i), (X_j + u_j)) - max((X_i - u_i), (X_j - u_j))
+    h_ji = min((X_j + u_j), (X_i + u_i)) - max((X_j - u_j), (X_i - u_i))
+
+    # subtract size of non overlapping part 2ui - hij
+    # total agreement between 2 agents: hij - (2ui - hij) = 2(hij - ui)
+    # RELATIVE AGREEMENT GIVEN BY: 2(hij - ui) / 2ui = (hij / ui) - 1
+    RA_ij = (h_ij / u_i) - 1
+    RA_ji = (h_ji / u_j) - 1
+
+    # update
+    if (h_ij > u_j) :
+        traders[i].set_opinion( X_i + (weight * RA_ji * (X_j - X_i)) )
+        traders[i].uncertainty = u_i + (weight * RA_ji * (u_j - u_i))
+    if (h_ij > u_i) :
+        agent[agentj].set_opinion( X_j + (weight * RA_ij * (X_i - X_j)) )
+        agent[agentj].uncertainty = u_j + (weight * RA_ij * (u_i - u_j))
 
 #############################
 

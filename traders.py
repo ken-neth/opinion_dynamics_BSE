@@ -20,7 +20,7 @@ import random
 # all Traders have a trader id, bank balance, blotter, and list of orders to execute
 class Trader:
 
-        def __init__(self, ttype, tid, balance, time, opinion):
+        def __init__(self, ttype, tid, balance, time, opinion, uncertainty):
                 self.ttype = ttype      # what type / strategy this trader is
                 self.tid = tid          # trader unique ID code
                 self.balance = balance  # money in the bank
@@ -35,6 +35,7 @@ class Trader:
                 self.lastquote = None   # record of what its last quote was
 
                 self.opinion = opinion        # opinion between [0,1]
+                self.uncertainty = uncertainty # uncertainty between [0, 2]
 
 
         def __str__(self):
@@ -224,7 +225,7 @@ class Trader_ZIP(Trader):
         #    so a single trader can both buy AND sell
         #    -- in the original, traders were either buyers OR sellers
 
-        def __init__(self, ttype, tid, balance, time, opinion):
+        def __init__(self, ttype, tid, balance, time, opinion, uncertainty):
                 self.ttype = ttype
                 self.tid = tid
                 self.balance = balance
@@ -254,6 +255,7 @@ class Trader_ZIP(Trader):
                 self.prev_best_ask_q = None
 
                 self.opinion = opinion
+                self.uncertainty = uncertainty
 
 
         def getorder(self, time, countdown, lob):
