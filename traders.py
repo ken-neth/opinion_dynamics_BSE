@@ -34,7 +34,7 @@ class Trader:
                 self.n_trades = 0       # how many trades has this trader done?
                 self.lastquote = None   # record of what its last quote was
 
-                self.opinion = 0        # opinion between [0,1]
+                self.opinion = opinion        # opinion between [0,1]
 
 
         def __str__(self):
@@ -224,7 +224,7 @@ class Trader_ZIP(Trader):
         #    so a single trader can both buy AND sell
         #    -- in the original, traders were either buyers OR sellers
 
-        def __init__(self, ttype, tid, balance, time):
+        def __init__(self, ttype, tid, balance, time, opinion):
                 self.ttype = ttype
                 self.tid = tid
                 self.balance = balance
@@ -252,6 +252,8 @@ class Trader_ZIP(Trader):
                 self.prev_best_bid_q = None
                 self.prev_best_ask_p = None
                 self.prev_best_ask_q = None
+
+                self.opinion = opinion
 
 
         def getorder(self, time, countdown, lob):

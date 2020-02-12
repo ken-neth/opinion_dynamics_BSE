@@ -393,7 +393,29 @@ def trade_stats(expid, traders, dumpfile, time, lob):
         dumpfile.write('\n');
 
 
+# opinion_stats()
+# dump CSV statistics on opinion distribution to file for later analysis
+def opinion_stats(expid, traders, dumpfile, time):
+        trader_types = {}
+        n_traders = len(traders)
+        for t in traders:
+                ttype = traders[t].ttype
+                if ttype in trader_types.keys():
+                        trader_types[ttype]['opinions'].append(traders[t].opinion)
+                        trader_types[ttype]['n'] = trader_types[ttype]['n'] + 1
+                else:
+                        opinions = [traders[t].opinion]
+                        trader_types[ttype] = {'n':1, 'opinions': opinions}
 
+
+        dumpfile.write('%s, %06d, ' % (expid, time))
+        for ttype in sorted(list(trader_types.keys())):
+                n = trader_types[ttype]['n']
+                os = trader_types[ttype]['opinions']
+                dumpfile.write('%s, %d,' % (ttype, n))
+                for o in os:
+                    dumpfile.write('%f, ' % o)
+        dumpfile.write('\n');
 
 
 # create a bunch of traders from traders_spec
@@ -411,7 +433,7 @@ def populate_market(traders_spec, traders, shuffle, verbose):
                 elif robottype == 'SNPR':
                         return Trader_Sniper('SNPR', name, 0.00, 0, random.uniform(0, 1))
                 elif robottype == 'ZIP':
-                        return Trader_ZIP('ZIP', name, 0.00, 0, random.uniform(0, 1))
+                        return Trader_ZIP('ZIP', name, 0.00, 0, random.uniform(0,1))
                 else:
                         sys.exit('FATAL: don\'t know robot type %s\n' % robottype)
 
@@ -669,7 +691,7 @@ def customer_orders(time, last_update, traders, trader_stats, os, pending, verbo
 
 
 # one session in the market
-def market_session(sess_id, starttime, endtime, trader_spec, order_schedule, dumpfile, dump_each_trade, verbose):
+def market_session(sess_id, starttime, endtime, trader_spec, order_schedule, dumpfile, opfile, dump_each_trade, verbose):
 
 
         # initialise the exchange
@@ -747,7 +769,7 @@ def market_session(sess_id, starttime, endtime, trader_spec, order_schedule, dum
                                 # so the counterparties update order lists and blotters
                                 traders[trade['party1']].bookkeep(trade, order, bookkeep_verbose, time)
                                 traders[trade['party2']].bookkeep(trade, order, bookkeep_verbose, time)
-                                if dump_each_trade: trade_stats(sess_id, traders, tdump, time, exchange.publish_lob(time, lob_verbose))
+                                if dump_each_trade: trade_stats(sess_id, traders, dumpfile, time, exchange.publish_lob(time, lob_verbose))
                         # ======================================================
                         #        traders respond to whatever happened
                         # ======================================================
@@ -759,7 +781,8 @@ def market_session(sess_id, starttime, endtime, trader_spec, order_schedule, dum
                                 traders[t].respond(time, lob, trade, respond_verbose)
 
                 # Communicate and update opinions
-                bounded_confidence_step(0.5, 1, time, traders)
+                opinion_stats(sess_id, traders, opfile, time)
+                bounded_confidence_step(0.1, 0.1, time, traders)
 
 
                 time = time + timestep
@@ -864,11 +887,15 @@ if __name__ == "__main__":
         else:
                dump_all = True
 
+        odump=open('opinions.csv','w')
+
         while (trial<(n_trials+1)):
                trial_id = 'trial%04d' % trial
-               market_session(trial_id, start_time, end_time, traders_spec, order_sched, tdump, dump_all, True)
+               market_session(trial_id, start_time, end_time, traders_spec, order_sched, tdump, odump, dump_all, True)
+               odump.flush()
                tdump.flush()
                trial = trial + 1
+        odump.close()
         tdump.close()
 
         sys.exit('Done Now')
