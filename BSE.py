@@ -782,7 +782,8 @@ def market_session(sess_id, starttime, endtime, trader_spec, order_schedule, dum
 
                 # Communicate and update opinions
                 opinion_stats(sess_id, traders, opfile, time)
-                bounded_confidence_step(0.1, 0.1, time, traders)
+                # bounded_confidence_step(0.1, 0.1, time, traders)
+                relative_agreement_step(0.5, traders)
 
 
                 time = time + timestep
@@ -845,8 +846,8 @@ def relative_agreement_step(weight, traders):
         traders[i].set_opinion( X_i + (weight * RA_ji * (X_j - X_i)) )
         traders[i].uncertainty = u_i + (weight * RA_ji * (u_j - u_i))
     if (h_ij > u_i) :
-        agent[agentj].set_opinion( X_j + (weight * RA_ij * (X_i - X_j)) )
-        agent[agentj].uncertainty = u_j + (weight * RA_ij * (u_i - u_j))
+        traders[j].set_opinion( X_j + (weight * RA_ij * (X_i - X_j)) )
+        traders[j].uncertainty = u_j + (weight * RA_ij * (u_i - u_j))
 
 #############################
 
@@ -919,7 +920,6 @@ if __name__ == "__main__":
         while (trial<(n_trials+1)):
                trial_id = 'trial%04d' % trial
                market_session(trial_id, start_time, end_time, traders_spec, order_sched, tdump, odump, dump_all, True)
-               odump.flush()
                tdump.flush()
                trial = trial + 1
         odump.close()
