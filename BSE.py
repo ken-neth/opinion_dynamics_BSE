@@ -798,8 +798,8 @@ def market_session(sess_id, starttime, endtime, trader_spec, order_schedule, dum
                 # ======================================================
                 opinion_stats(sess_id, traders, opfile, time)
                 # bounded_confidence_step(0.1, 0.1, time, traders)
-                relative_agreement_step(0.2, traders)
-                # relative_disagreement_step(0.2, 1, traders)
+                # relative_agreement_step(0.2, traders)
+                relative_disagreement_step(0.05, 0, traders)
 
 
                 time = time + timestep
@@ -884,7 +884,7 @@ if __name__ == "__main__":
 
         while (trial<(n_trials+1)):
                trial_id = 'trial%04d' % trial
-               market_session(trial_id, start_time, end_time, traders_spec, order_sched, tdump, odump, dump_all, True, 'RA')
+               market_session(trial_id, start_time, end_time, traders_spec, order_sched, tdump, odump, dump_all, True, 'RD')
                tdump.flush()
                odump.flush()
                trial = trial + 1

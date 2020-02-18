@@ -12,8 +12,8 @@ def bounded_confidence_step(w, delta, k, traders):
     # get two traders i and j
     i, j = random.sample(list(traders.keys()), 2)
 
-    X_i = traders[i].get_opinion()
-    X_j = traders[j].get_opinion()
+    X_i = traders[i].opinion
+    X_j = traders[j].opinion
 
     # if difference in opinion is within deviation threshold
     if abs(X_i - X_j) <= delta:
@@ -49,10 +49,10 @@ def relative_agreement_step(weight, traders):
     # update
     if (h_ji > u_j) :
         traders[i].set_opinion( X_i + (weight * RA_ji * (X_j - X_i)) )
-        traders[i].uncertainty = u_i + (weight * RA_ji * (u_j - u_i))
+        traders[i].set_uncertainty(u_i + (weight * RA_ji * (u_j - u_i)))
     if (h_ij > u_i) :
         traders[j].set_opinion( X_j + (weight * RA_ij * (X_i - X_j)) )
-        traders[j].uncertainty = u_j + (weight * RA_ij * (u_i - u_j))
+        traders[j].set_uncertainty(u_j + (weight * RA_ij * (u_i - u_j)))
 
 def relative_disagreement_step(weight, prob, traders):
     i, j = random.sample(list(traders.keys()), 2)
@@ -77,7 +77,7 @@ def relative_disagreement_step(weight, prob, traders):
     if random.random() <= prob:
         if (g_ji > u_j) :
             traders[i].set_opinion( X_i - (weight * RD_ji * (X_j - X_i)) )
-            traders[i].uncertainty = u_i + (weight * RD_ji * (u_j - u_i))
+            traders[i].set_uncertainty(u_i + (weight * RD_ji * (u_j - u_i)))
         if (g_ij > u_i) :
             traders[j].set_opinion( X_j + (weight * RD_ij * (X_i - X_j)) )
-            traders[j].uncertainty = u_j + (weight * RD_ij * (u_i - u_j))
+            traders[j].set_uncertainty(u_j + (weight * RD_ij * (u_i - u_j)))

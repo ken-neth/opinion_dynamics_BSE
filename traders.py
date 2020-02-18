@@ -36,6 +36,10 @@ class Trader:
 
                 self.opinion = opinion        # opinion between [0,1]
                 self.uncertainty = uncertainty # uncertainty between [0, 2]
+                self.lower_op_bound = 0
+                self.upper_op_bound = 1
+                self.lower_un_bound = 0
+                self.upper_un_bound = 2
 
 
         def __str__(self):
@@ -99,11 +103,32 @@ class Trader:
         def mutate(self, time, lob, trade, verbose):
                 return None
 
-        def get_opinion(self):
-            return self.opinion
-
         def set_opinion(self, updated_opinion):
-            self.opinion = updated_opinion
+
+            validated_update = updated_opinion
+
+            if updated_opinion >= self.upper_op_bound:
+                # set to upper bound
+                validated_update = self.upper_op_bound
+            elif updated_opinion <= self.lower_op_bound:
+                # set to lower bound
+                validated_update = self.lower_op_bound
+
+            self.opinion = validated_update
+
+        def set_uncertainty(self, updated_uncertainty):
+
+            validated_update = updated_uncertainty
+
+            if updated_uncertainty >= self.upper_un_bound:
+                # set to upper bound
+                validated_update = self.upper_un_bound
+            elif updated_uncertainty <= self.lower_un_bound:
+                # set to lower bound
+                validated_update = self.lower_un_bound
+
+            self.uncertainty = validated_update
+
 
 # Trader subclass Giveaway
 # even dumber than a ZI-U: just give the deal away
