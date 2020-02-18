@@ -36,6 +36,7 @@ class Trader:
 
                 self.opinion = opinion        # opinion between [0,1]
                 self.uncertainty = uncertainty # uncertainty between [0, 2]
+                
                 self.lower_op_bound = 0
                 self.upper_op_bound = 1
                 self.lower_un_bound = 0

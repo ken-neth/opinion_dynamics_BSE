@@ -64,12 +64,15 @@ def relative_disagreement_step(weight, prob, traders):
     u_j = traders[j].uncertainty
 
     # Calculate overlap
-    g_ij = max((X_i - u_i), (X_j - u_j)) - min((X_i + u_i), (X_j + u_j))
-    g_ji = max((X_j - u_j), (X_i - u_i)) - min((X_j + u_j), (X_i + u_i))
+    # g_ij = max((X_i - u_i), (X_j - u_j)) - min((X_i + u_i), (X_j + u_j))
+    g_ij = min((X_i + u_i), (X_j + u_j)) - max((X_i - u_i), (X_j - u_j))
+    # g_ji = max((X_j - u_j), (X_i - u_i)) - min((X_j + u_j), (X_i + u_i))
+    g_ji = min((X_j + u_j), (X_i + u_i)) - max((X_j - u_j), (X_i - u_i))
 
     # subtract size of non overlapping part 2ui – gij
     # total disagreement given by: gij – (2ui – gij) = 2(gij – ui)
     # RELATIVE DISAGREEMENT GIVEN BY: 2(gij – ui) / 2ui = (gij / ui) – 1
+
     RD_ij = (g_ij / u_i) - 1
     RD_ji = (g_ji / u_j) - 1
 
@@ -79,5 +82,5 @@ def relative_disagreement_step(weight, prob, traders):
             traders[i].set_opinion( X_i - (weight * RD_ji * (X_j - X_i)) )
             traders[i].set_uncertainty(u_i + (weight * RD_ji * (u_j - u_i)))
         if (g_ij > u_i) :
-            traders[j].set_opinion( X_j + (weight * RD_ij * (X_i - X_j)) )
+            traders[j].set_opinion( X_j - (weight * RD_ij * (X_i - X_j)) )
             traders[j].set_uncertainty(u_j + (weight * RD_ij * (u_i - u_j)))

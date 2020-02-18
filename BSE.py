@@ -799,7 +799,7 @@ def market_session(sess_id, starttime, endtime, trader_spec, order_schedule, dum
                 opinion_stats(sess_id, traders, opfile, time)
                 # bounded_confidence_step(0.1, 0.1, time, traders)
                 # relative_agreement_step(0.2, traders)
-                relative_disagreement_step(0.05, 0, traders)
+                relative_disagreement_step(0.2, 0.1, traders)
 
 
                 time = time + timestep
@@ -866,7 +866,7 @@ if __name__ == "__main__":
                        'interval':30, 'timemode':'periodic'}
 
         # buyers_spec = [('GVWY',10),('SHVR',10),('ZIC',10),('ZIP',10)]
-        buyers_spec = [('SNPR', 31)]
+        buyers_spec = [('SNPR', 100)]
         sellers_spec = buyers_spec
         traders_spec = {'sellers':sellers_spec, 'buyers':buyers_spec}
 
