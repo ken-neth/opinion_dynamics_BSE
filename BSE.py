@@ -55,6 +55,19 @@ bse_sys_minprice = 1  # minimum price in the system, in cents/pennies
 bse_sys_maxprice = 1000  # maximum price in the system, in cents/pennies
 ticksize = 1  # minimum change in price, in cents/pennies
 
+# population paramters
+N = 31
+# u_min = 0.2
+# u_max = 2.0
+u_steps = 19
+pe_min = 0.025
+pe = 0.3
+pe_steps = 12
+Max_Op = 1.0
+Min_Op = -1.0
+
+
+
 # ==========================================
 #       class order is in traders.py
 # ==========================================
@@ -417,6 +430,29 @@ def opinion_stats(expid, traders, dumpfile, time):
                     dumpfile.write('%f, ' % o)
         dumpfile.write('\n');
 
+# post_analysis()
+# now do the post-experiment analysis
+# def post_analysis(traders):
+    # compare current opinion and initial opinion
+    # p_prime_plus_count=0
+    # p_prime_minus_count=0
+    #
+    # for i in range(len(traders)):
+    #
+    #     # increment p_prime_plus_count if this is a moderate that went +ve extreme
+    #     if((traders[i][2]=="moderate")&((Max_Op-pop[i][0])<=extreme_distance)):
+    #         p_prime_plus_count+=1;
+    #
+    #     # increment p_prime_minus_count if this is a moderate that went -ve extreme
+    #     if((pop[i][2]=="moderate")&((pop[i][0]-Min_Op)<=extreme_distance)):
+    #         p_prime_minus_count+=1
+    #
+    #
+    # p_prime_plus=p_prime_plus_count/float(n_moderate)
+    # p_prime_minus=p_prime_minus_count/float(n_moderate)
+    #
+    # y=(p_prime_plus*p_prime_plus)+(p_prime_minus*p_prime_minus)
+    # print "y=",y
 
 # create a bunch of traders from traders_spec
 # returns tuple (n_buyers, n_sellers)
@@ -427,26 +463,26 @@ def populate_market(traders_spec, traders, shuffle, verbose, model):
                 opinion = 0.5
                 uncertainty = 1.0
                 if model == 'BC':
-                    opinion = random.uniform(0, 1)
+                    opinion = random.uniform(Min_Op, Max_Op)
                 elif model == 'RA':
-                    opinion = random.uniform(0, 1)
+                    opinion = random.uniform(Min_Op, Max_Op)
                     uncertainty = random.uniform(0, 2)
                 elif model == 'RD':
-                    opinion = random.uniform(0, 1)
+                    opinion = random.uniform(Min_Op, Max_Op)
                     uncertainty = min((random.uniform(0.2, 2.0) + random.uniform(0, 1)), 2)
                 else:
                     sys.exit('FATAL: don\'t know that opinion dynamic model type %s\n' % model);
 
                 if robottype == 'GVWY':
-                        return Trader_Giveaway('GVWY', name, 0.00, 0, opinion, uncertainty)
+                        return Trader_Giveaway('GVWY', name, 0.00, 0, opinion, uncertainty, Min_Op, Max_Op)
                 elif robottype == 'ZIC':
-                        return Trader_ZIC('ZIC', name, 0.00, 0, opinion, uncertainty)
+                        return Trader_ZIC('ZIC', name, 0.00, 0, opinion, uncertainty, Min_Op, Max_Op)
                 elif robottype == 'SHVR':
-                        return Trader_Shaver('SHVR', name, 0.00, 0, opinion, uncertainty)
+                        return Trader_Shaver('SHVR', name, 0.00, 0, opinion, uncertainty, Min_Op, Max_Op)
                 elif robottype == 'SNPR':
-                        return Trader_Sniper('SNPR', name, 0.00, 0, opinion, uncertainty)
+                        return Trader_Sniper('SNPR', name, 0.00, 0, opinion, uncertainty, Min_Op, Max_Op)
                 elif robottype == 'ZIP':
-                        return Trader_ZIP('ZIP', name, 0.00, 0, opinion, uncertainty)
+                        return Trader_ZIP('ZIP', name, 0.00, 0, opinion, uncertainty, Min_Op, Max_Op)
                 else:
                         sys.exit('FATAL: don\'t know robot type %s\n' % robottype)
 
@@ -866,7 +902,7 @@ if __name__ == "__main__":
                        'interval':30, 'timemode':'periodic'}
 
         # buyers_spec = [('GVWY',10),('SHVR',10),('ZIC',10),('ZIP',10)]
-        buyers_spec = [('SNPR', 100)]
+        buyers_spec = [('SNPR', N)]
         sellers_spec = buyers_spec
         traders_spec = {'sellers':sellers_spec, 'buyers':buyers_spec}
 

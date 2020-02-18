@@ -20,7 +20,7 @@ import random
 # all Traders have a trader id, bank balance, blotter, and list of orders to execute
 class Trader:
 
-        def __init__(self, ttype, tid, balance, time, opinion, uncertainty):
+        def __init__(self, ttype, tid, balance, time, opinion, uncertainty, lower_op_bound, upper_op_bound):
                 self.ttype = ttype      # what type / strategy this trader is
                 self.tid = tid          # trader unique ID code
                 self.balance = balance  # money in the bank
@@ -36,11 +36,13 @@ class Trader:
 
                 self.opinion = opinion        # opinion between [0,1]
                 self.uncertainty = uncertainty # uncertainty between [0, 2]
-                
-                self.lower_op_bound = 0
-                self.upper_op_bound = 1
+
+                self.lower_op_bound = lower_op_bound
+                self.upper_op_bound = upper_op_bound
                 self.lower_un_bound = 0
                 self.upper_un_bound = 2
+
+                self.type = "moderate"
 
 
         def __str__(self):
