@@ -1,7 +1,7 @@
 import random
 from traders import Order, Trader, Trader_Giveaway, Trader_Shaver, Trader_Sniper, Trader_ZIC, Trader_ZIP
 
-def trader_type(robottype, name, min_Op, max_Op, model):
+def trader_type(robottype, name, min_Op, max_Op, model, start_opinion):
             opinion = 0.5
             uncertainty = 1.0
             if model == 'BC':
@@ -16,15 +16,15 @@ def trader_type(robottype, name, min_Op, max_Op, model):
                 sys.exit('FATAL: don\'t know that opinion dynamic model type %s\n' % model);
 
             if robottype == 'GVWY':
-                    return Trader_Giveaway('GVWY', name, 0.00, 0, opinion, uncertainty, min_Op, max_Op)
+                    return Trader_Giveaway('GVWY', name, 0.00, 0, opinion, uncertainty, min_Op, max_Op, start_opinion)
             elif robottype == 'ZIC':
-                    return Trader_ZIC('ZIC', name, 0.00, 0, opinion, uncertainty, min_Op, max_Op)
+                    return Trader_ZIC('ZIC', name, 0.00, 0, opinion, uncertainty, min_Op, max_Op, start_opinion)
             elif robottype == 'SHVR':
-                    return Trader_Shaver('SHVR', name, 0.00, 0, opinion, uncertainty, min_Op, max_Op)
+                    return Trader_Shaver('SHVR', name, 0.00, 0, opinion, uncertainty, min_Op, max_Op, start_opinion)
             elif robottype == 'SNPR':
-                    return Trader_Sniper('SNPR', name, 0.00, 0, opinion, uncertainty, min_Op, max_Op)
+                    return Trader_Sniper('SNPR', name, 0.00, 0, opinion, uncertainty, min_Op, max_Op, start_opinion)
             elif robottype == 'ZIP':
-                    return Trader_ZIP('ZIP', name, 0.00, 0, opinion, uncertainty, min_Op, max_Op)
+                    return Trader_ZIP('ZIP', name, 0.00, 0, opinion, uncertainty, min_Op, max_Op, start_opinion)
             else:
                     sys.exit('FATAL: don\'t know robot type %s\n' % robottype)
 

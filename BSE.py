@@ -528,7 +528,7 @@ def populate_market(traders_spec, traders, shuffle, verbose, model):
                 ttype = bs[0]
                 for b in range(bs[1]):
                         tname = 'B%02d' % n_buyers  # buyer i.d. string
-                        traders[tname] = trader_type(ttype, tname, Min_Op, Max_Op, model)
+                        traders[tname] = trader_type(ttype, tname, Min_Op, Max_Op, model, "moderate")
                         n_buyers = n_buyers + 1
 
         if n_buyers < 1:
@@ -542,7 +542,7 @@ def populate_market(traders_spec, traders, shuffle, verbose, model):
                 ttype = ss[0]
                 for s in range(ss[1]):
                         tname = 'S%02d' % n_sellers  # buyer i.d. string
-                        traders[tname] = trader_type(ttype, tname, Min_Op, Max_Op, model)
+                        traders[tname] = trader_type(ttype, tname, Min_Op, Max_Op, model, "moderate")
                         n_sellers = n_sellers + 1
 
         if n_sellers < 1:
@@ -561,10 +561,49 @@ def populate_market(traders_spec, traders, shuffle, verbose, model):
 
         return {'n_buyers':n_buyers, 'n_sellers':n_sellers}
 
-# def add_traders(traders, shuffle, verbose):
+def add_traders(traders_spec, traders, shuffle, verbose):
 
+    # TODO: IMPROVE THIS
+    # counts number of buyers and sellers
+    n_buyers = 0
+    n_sellers = 0
+    for trader in traders:
+        if trader.tid[0] == 'B':
+            n_buyers += 1
+        elif trader.tid[0] == 'S':
+            n_sellers += 1
 
+    for bs in traders_spec['buyers']:
+            ttype = bs[0]
+            opinion = bs[2]
+            start_opinion = bs[3]
+            for b in range(bs[1]):
+                    tname = 'B%02d' % n_buyers  # buyer i.d. string
+                    traders[tname] = trader_type(ttype, tname, opinion, Min_Op, Max_Op, model, start_opinion)
+                    n_buyers = n_buyers + 1
 
+    if shuffle: shuffle_traders('B', n_buyers, traders)
+
+    for ss in traders_spec['sellers']:
+            ttype = ss[0]
+            opinion = ss[2]
+            start_opinion = ss[3]
+            for s in range(ss[1]):
+                    tname = 'S%02d' % n_sellers  # buyer i.d. string
+                    traders[tname] = trader_type(ttype, tname, opinion, Min_Op, Max_Op, model, start_opinion)
+                    n_sellers = n_sellers + 1
+
+    if shuffle: shuffle_traders('S', n_sellers, traders)
+
+    if verbose :
+            for t in range(n_buyers):
+                    bname = 'B%02d' % t
+                    print(traders[bname])
+            for t in range(n_sellers):
+                    bname = 'S%02d' % t
+                    print(traders[bname])
+
+    return {'n_buyers':n_buyers, 'n_sellers':n_sellers}
 
 # customer_orders(): allocate orders to traders
 # parameter "os" is order schedule
