@@ -48,14 +48,15 @@
 import sys
 import math
 import random
-from traders import Order, Trader, Trader_Giveaway, Trader_Shaver, Trader_Sniper, Trader_ZIC, Trader_ZIP
+from populate import trader_type, shuffle_traders
+from traders import Order
 from models import bounded_confidence_step, relative_agreement_step, relative_disagreement_step
 
 bse_sys_minprice = 1  # minimum price in the system, in cents/pennies
 bse_sys_maxprice = 1000  # maximum price in the system, in cents/pennies
 ticksize = 1  # minimum change in price, in cents/pennies
 
-# population paramters
+# population parameters
 N = 31
 # u_min = 0.2
 # u_max = 2.0
@@ -66,6 +67,16 @@ pe_steps = 12
 Max_Op = 1.0
 Min_Op = -1.0
 
+model_name = "RA"
+
+# intensity of interactions
+mu = 0.2 # used for all models
+delta = 0.1 # used for Bounded Confidence Model
+lmda = 0.1 # used for Relative Disagreement Model
+
+extreme_distance = 0.2 # how close one has to be to be an "extremist"
+Min_mod_op = Min_Op + extreme_distance
+Max_mod_op = Max_Op - extreme_distance
 
 
 # ==========================================
@@ -430,82 +441,94 @@ def opinion_stats(expid, traders, dumpfile, time):
                     dumpfile.write('%f, ' % o)
         dumpfile.write('\n');
 
-# post_analysis()
-# now do the post-experiment analysis
-# def post_analysis(traders):
-    # compare current opinion and initial opinion
-    # p_prime_plus_count=0
-    # p_prime_minus_count=0
-    #
-    # for i in range(len(traders)):
-    #
-    #     # increment p_prime_plus_count if this is a moderate that went +ve extreme
-    #     if((traders[i][2]=="moderate")&((Max_Op-pop[i][0])<=extreme_distance)):
-    #         p_prime_plus_count+=1;
-    #
-    #     # increment p_prime_minus_count if this is a moderate that went -ve extreme
-    #     if((pop[i][2]=="moderate")&((pop[i][0]-Min_Op)<=extreme_distance)):
-    #         p_prime_minus_count+=1
-    #
-    #
-    # p_prime_plus=p_prime_plus_count/float(n_moderate)
-    # p_prime_minus=p_prime_minus_count/float(n_moderate)
-    #
-    # y=(p_prime_plus*p_prime_plus)+(p_prime_minus*p_prime_minus)
-    # print "y=",y
+# calc_y()
+def calc_y(u, pe, traders, dump, dumpid):
+
+    if(dump>0):
+        # write population values to file on this run
+        filename=model_name+"_%2.3f"%u+"_%2.3f"%pe+"_%2d"%dumpid+'.csv'
+        outfile=open(filename,'w')
+
+
+    # generate initial population of individuals
+     #pop structure is [opinion,certainty,start_opinion,n_iterations]
+
+    # use pe to determine number of extremists (and hence number of moderates)
+    n_extremists=pe*N
+    N_P_plus=int(0.5+(n_extremists/2.0))
+    #assume symmetric plus/minus
+    N_P_minus=N_P_plus
+    n_moderate=N-(N_P_plus+N_P_minus)
+
+    # create extremists: Max then Min
+    for i in range(N_P_plus):
+        pop[i][0]=Max_Op-(random.random()*extreme_distance)
+        pop[i][1]=u_e
+        pop[i][2]="extreme"
+
+    for i in range(N_P_minus):
+        pop[N_P_plus+i][0]=Min_Op+(random.random()*extreme_distance)
+        pop[N_P_plus+i][1]=u_e
+        pop[N_P_plus+i][2]="extreme"
+
+
+    # this is the main experiment loop
+    for iter in range(n_iter):
+
+        # write the line of agent opinions for this iteration
+        if(dump>0):
+            outstr=""
+            for i in range(N):
+                if(i<(n-1)):
+                    outstr+="%2.3f"%pop[i][0]+", "
+                else:
+                    outstr+="%2.3f"%pop[i][0]+"\n"
+            outfile.write(outstr)
+
+
+        #now do n updates
+
+        for i in range(n):
+
+            # randomly pick an individual to be influenced
+            agent=random.randint(0,N-1)
+
+            # randomly pick a different individual to be the influencer
+            influencer=agent
+            while(influencer==agent):
+                influencer=random.randint(0,N-1)
+
+            # allow them to interact and possibly alter opinions
+            # switching to variable names used by deffuant et al
+            x_j=pop[agent][0]
+            u_j=pop[agent][1]
+            x_i=pop[influencer][0]
+            u_i=pop[influencer][1]
+            h_ij=min(x_i+u_i, x_j+u_j) - max(x_i-u_i, x_j-u_j)
+            if(h_ij>u_i):
+                relagree=(h_ij/u_i)-1
+                delta_x_j=mu*relagree*(x_i-x_j)
+                delta_u_j=mu*relagree*(u_i-u_j)
+                pop[agent][0]=x_j+delta_x_j
+                pop[agent][1]=u_j+delta_u_j
+                # print "influence! dx, du=",delta_x_j,delta_u_j
+
+            # update the counts
+            pop[agent][3]=pop[agent][3]+1
+            pop[influencer][3]=pop[influencer][3]+1
+
 
 # create a bunch of traders from traders_spec
 # returns tuple (n_buyers, n_sellers)
 # optionally shuffles the pack of buyers and the pack of sellers
 def populate_market(traders_spec, traders, shuffle, verbose, model):
 
-        def trader_type(robottype, name):
-                opinion = 0.5
-                uncertainty = 1.0
-                if model == 'BC':
-                    opinion = random.uniform(Min_Op, Max_Op)
-                elif model == 'RA':
-                    opinion = random.uniform(Min_Op, Max_Op)
-                    uncertainty = random.uniform(0, 2)
-                elif model == 'RD':
-                    opinion = random.uniform(Min_Op, Max_Op)
-                    uncertainty = min((random.uniform(0.2, 2.0) + random.uniform(0, 1)), 2)
-                else:
-                    sys.exit('FATAL: don\'t know that opinion dynamic model type %s\n' % model);
-
-                if robottype == 'GVWY':
-                        return Trader_Giveaway('GVWY', name, 0.00, 0, opinion, uncertainty, Min_Op, Max_Op)
-                elif robottype == 'ZIC':
-                        return Trader_ZIC('ZIC', name, 0.00, 0, opinion, uncertainty, Min_Op, Max_Op)
-                elif robottype == 'SHVR':
-                        return Trader_Shaver('SHVR', name, 0.00, 0, opinion, uncertainty, Min_Op, Max_Op)
-                elif robottype == 'SNPR':
-                        return Trader_Sniper('SNPR', name, 0.00, 0, opinion, uncertainty, Min_Op, Max_Op)
-                elif robottype == 'ZIP':
-                        return Trader_ZIP('ZIP', name, 0.00, 0, opinion, uncertainty, Min_Op, Max_Op)
-                else:
-                        sys.exit('FATAL: don\'t know robot type %s\n' % robottype)
-
-
-        def shuffle_traders(ttype_char, n, traders):
-                for swap in range(n):
-                        t1 = (n - 1) - swap
-                        t2 = random.randint(0, t1)
-                        t1name = '%c%02d' % (ttype_char, t1)
-                        t2name = '%c%02d' % (ttype_char, t2)
-                        traders[t1name].tid = t2name
-                        traders[t2name].tid = t1name
-                        temp = traders[t1name]
-                        traders[t1name] = traders[t2name]
-                        traders[t2name] = temp
-
-
         n_buyers = 0
         for bs in traders_spec['buyers']:
                 ttype = bs[0]
                 for b in range(bs[1]):
                         tname = 'B%02d' % n_buyers  # buyer i.d. string
-                        traders[tname] = trader_type(ttype, tname)
+                        traders[tname] = trader_type(ttype, tname, Min_Op, Max_Op, model)
                         n_buyers = n_buyers + 1
 
         if n_buyers < 1:
@@ -519,7 +542,7 @@ def populate_market(traders_spec, traders, shuffle, verbose, model):
                 ttype = ss[0]
                 for s in range(ss[1]):
                         tname = 'S%02d' % n_sellers  # buyer i.d. string
-                        traders[tname] = trader_type(ttype, tname)
+                        traders[tname] = trader_type(ttype, tname, Min_Op, Max_Op, model)
                         n_sellers = n_sellers + 1
 
         if n_sellers < 1:
@@ -537,6 +560,9 @@ def populate_market(traders_spec, traders, shuffle, verbose, model):
 
 
         return {'n_buyers':n_buyers, 'n_sellers':n_sellers}
+
+# def add_traders(traders, shuffle, verbose):
+
 
 
 
@@ -833,10 +859,13 @@ def market_session(sess_id, starttime, endtime, trader_spec, order_schedule, dum
                 #           Communicate and update opinions
                 # ======================================================
                 opinion_stats(sess_id, traders, opfile, time)
-                # bounded_confidence_step(0.1, 0.1, time, traders)
-                # relative_agreement_step(0.2, traders)
-                relative_disagreement_step(0.2, 0.1, traders)
 
+                if model_name == "BC":
+                    bounded_confidence_step(mu, delta, time, traders)
+                elif model_name == "RA":
+                    relative_agreement_step(mu, traders)
+                elif model_name == "RD":
+                    relative_disagreement_step(mu, lmda, traders)
 
                 time = time + timestep
 
@@ -916,11 +945,12 @@ if __name__ == "__main__":
         else:
                dump_all = True
 
-        odump=open('opinions.csv','w')
+        filename=model_name+"opinions"+'.csv'
+        odump=open(filename,'w')
 
         while (trial<(n_trials+1)):
                trial_id = 'trial%04d' % trial
-               market_session(trial_id, start_time, end_time, traders_spec, order_sched, tdump, odump, dump_all, True, 'RD')
+               market_session(trial_id, start_time, end_time, traders_spec, order_sched, tdump, odump, dump_all, True, model_name)
                tdump.flush()
                odump.flush()
                trial = trial + 1
