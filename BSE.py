@@ -49,7 +49,7 @@ import sys
 import math
 import random
 from traders import Order, Trader, Trader_Giveaway, Trader_Shaver, Trader_Sniper, Trader_ZIC, Trader_ZIP
-
+from models import bounded_confidence_step, relative_agreement_step, relative_disagreement_step
 
 bse_sys_minprice = 1  # minimum price in the system, in cents/pennies
 bse_sys_maxprice = 1000  # maximum price in the system, in cents/pennies
@@ -421,19 +421,32 @@ def opinion_stats(expid, traders, dumpfile, time):
 # create a bunch of traders from traders_spec
 # returns tuple (n_buyers, n_sellers)
 # optionally shuffles the pack of buyers and the pack of sellers
-def populate_market(traders_spec, traders, shuffle, verbose):
+def populate_market(traders_spec, traders, shuffle, verbose, model):
 
         def trader_type(robottype, name):
+                opinion = 0.5
+                uncertainty = 1.0
+                if model == 'BC':
+                    opinion = random.uniform(0, 1)
+                elif model == 'RA':
+                    opinion = random.uniform(0, 1)
+                    uncertainty = random.uniform(0, 2)
+                elif model == 'RD':
+                    opinion = random.uniform(0, 1)
+                    uncertainty = min((random.uniform(0.2, 2.0) + random.uniform(0, 1)), 2)
+                else:
+                    sys.exit('FATAL: don\'t know that opinion dynamic model type %s\n' % model);
+
                 if robottype == 'GVWY':
-                        return Trader_Giveaway('GVWY', name, 0.00, 0, random.uniform(0, 1), random.uniform(0, 2))
+                        return Trader_Giveaway('GVWY', name, 0.00, 0, opinion, uncertainty)
                 elif robottype == 'ZIC':
-                        return Trader_ZIC('ZIC', name, 0.00, 0, random.uniform(0, 1), random.uniform(0, 2))
+                        return Trader_ZIC('ZIC', name, 0.00, 0, opinion, uncertainty)
                 elif robottype == 'SHVR':
-                        return Trader_Shaver('SHVR', name, 0.00, 0, random.uniform(0, 1), random.uniform(0, 2))
+                        return Trader_Shaver('SHVR', name, 0.00, 0, opinion, uncertainty)
                 elif robottype == 'SNPR':
-                        return Trader_Sniper('SNPR', name, 0.00, 0, random.uniform(0, 1), random.uniform(0, 2))
+                        return Trader_Sniper('SNPR', name, 0.00, 0, opinion, uncertainty)
                 elif robottype == 'ZIP':
-                        return Trader_ZIP('ZIP', name, 0.00, 0, random.uniform(0,1), random.uniform(0, 2))
+                        return Trader_ZIP('ZIP', name, 0.00, 0, opinion, uncertainty)
                 else:
                         sys.exit('FATAL: don\'t know robot type %s\n' % robottype)
 
@@ -691,7 +704,7 @@ def customer_orders(time, last_update, traders, trader_stats, os, pending, verbo
 
 
 # one session in the market
-def market_session(sess_id, starttime, endtime, trader_spec, order_schedule, dumpfile, opfile, dump_each_trade, verbose):
+def market_session(sess_id, starttime, endtime, trader_spec, order_schedule, dumpfile, opfile, dump_each_trade, verbose, model):
 
 
         # initialise the exchange
@@ -700,7 +713,7 @@ def market_session(sess_id, starttime, endtime, trader_spec, order_schedule, dum
 
         # create a bunch of traders
         traders = {}
-        trader_stats = populate_market(trader_spec, traders, True, verbose)
+        trader_stats = populate_market(trader_spec, traders, True, verbose, model)
 
 
         # timestep set so that can process all traders in one second
@@ -780,10 +793,13 @@ def market_session(sess_id, starttime, endtime, trader_spec, order_schedule, dum
                                 # sequence (rather than random/shuffle) isn't a problem
                                 traders[t].respond(time, lob, trade, respond_verbose)
 
-                # Communicate and update opinions
+                # ======================================================
+                #           Communicate and update opinions
+                # ======================================================
                 opinion_stats(sess_id, traders, opfile, time)
                 # bounded_confidence_step(0.1, 0.1, time, traders)
-                relative_agreement_step(0.5, traders)
+                relative_agreement_step(0.2, traders)
+                # relative_disagreement_step(0.2, 1, traders)
 
 
                 time = time + timestep
@@ -797,57 +813,6 @@ def market_session(sess_id, starttime, endtime, trader_spec, order_schedule, dum
         # write trade_stats for this experiment NB end-of-session summary only
         trade_stats(sess_id, traders, tdump, time, exchange.publish_lob(time, lob_verbose))
 
-#############################
-
-# # Opinion dynamics models
-
-# bounded confidence model
-# (w, delta, k) are confidence factor, deviation threshold and time step respectively
-def bounded_confidence_step(w, delta, k, traders):
-    # get two traders i and j
-    i, j = random.sample(list(traders.keys()), 2)
-
-    X_i = traders[i].get_opinion()
-    X_j = traders[j].get_opinion()
-
-    # if difference in opinion is within deviation threshold
-    if abs(X_i - X_j) <= delta:
-
-        # trader i update
-        i_update = w * X_i + (1 - w) * X_j
-        traders[i].set_opinion(i_update)
-
-        # trader j update
-        j_update = w * X_j + (1 - w) * X_i
-        traders[j].set_opinion(j_update)
-
-
-def relative_agreement_step(weight, traders):
-    i, j = random.sample(list(traders.keys()), 2)
-
-    X_i = traders[i].opinion
-    u_i = traders[i].uncertainty
-
-    X_j = traders[j].opinion
-    u_j = traders[j].uncertainty
-
-    # Calculate overlap
-    h_ij = min((X_i + u_i), (X_j + u_j)) - max((X_i - u_i), (X_j - u_j))
-    h_ji = min((X_j + u_j), (X_i + u_i)) - max((X_j - u_j), (X_i - u_i))
-
-    # subtract size of non overlapping part 2ui - hij
-    # total agreement between 2 agents: hij - (2ui - hij) = 2(hij - ui)
-    # RELATIVE AGREEMENT GIVEN BY: 2(hij - ui) / 2ui = (hij / ui) - 1
-    RA_ij = (h_ij / u_i) - 1
-    RA_ji = (h_ji / u_j) - 1
-
-    # update
-    if (h_ij > u_j) :
-        traders[i].set_opinion( X_i + (weight * RA_ji * (X_j - X_i)) )
-        traders[i].uncertainty = u_i + (weight * RA_ji * (u_j - u_i))
-    if (h_ij > u_i) :
-        traders[j].set_opinion( X_j + (weight * RA_ij * (X_i - X_j)) )
-        traders[j].uncertainty = u_j + (weight * RA_ij * (u_i - u_j))
 
 #############################
 
@@ -919,8 +884,9 @@ if __name__ == "__main__":
 
         while (trial<(n_trials+1)):
                trial_id = 'trial%04d' % trial
-               market_session(trial_id, start_time, end_time, traders_spec, order_sched, tdump, odump, dump_all, True)
+               market_session(trial_id, start_time, end_time, traders_spec, order_sched, tdump, odump, dump_all, True, 'RA')
                tdump.flush()
+               odump.flush()
                trial = trial + 1
         odump.close()
         tdump.close()
