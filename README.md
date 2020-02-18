@@ -1,7 +1,7 @@
 # opinion_dynamics_BSE
 
-opinion_dynamics_BSE is a Python project built on top of the BSE, The Bristol
-Stock Exchange, is a simple minimal simulation of a limit-order-book financial
+opinion_dynamics_BSE is a Python project built on top of the BSE, [The Bristol
+Stock Exchange](https://github.com/davecliff/BristolStockExchange), is a simple minimal simulation of a limit-order-book financial
 exchange, developed for teaching.
 
 The aim of this project is to combine two well established fields of research, i.e. opinion dynamics modelling and financial market simulation with automated traders, to create a generator of simulated market data where the automated traders communicate and update their "opinions" according to generally trusted opinion dynamics models.
