@@ -51,6 +51,7 @@ import random
 from populate import trader_type, shuffle_traders
 from traders import Order
 from models import bounded_confidence_step, relative_agreement_step, relative_disagreement_step
+from ymetric import calc_y, calc_y_stats
 
 bse_sys_minprice = 1  # minimum price in the system, in cents/pennies
 bse_sys_maxprice = 1000  # maximum price in the system, in cents/pennies
@@ -74,10 +75,16 @@ mu = 0.2 # used for all models
 delta = 0.1 # used for Bounded Confidence Model
 lmda = 0.1 # used for Relative Disagreement Model
 
+
+u_e = 0.1 # extremism uncertainty
 extreme_distance = 0.2 # how close one has to be to be an "extremist"
 Min_mod_op = Min_Op + extreme_distance
 Max_mod_op = Max_Op - extreme_distance
 
+#number of iid repetitions of the simulation at each (u,pe) point
+sims_per_point = 50
+#number of runs to dump as timeseries of opinion for each agent at each (u,pe)
+n_dumps = 0
 
 # ==========================================
 #       class order is in traders.py
@@ -441,18 +448,7 @@ def opinion_stats(expid, traders, dumpfile, time):
                     dumpfile.write('%f, ' % o)
         dumpfile.write('\n');
 
-# calc_y()
-def calc_y(u, pe, traders, dump, dumpid):
-
-    if(dump>0):
-        # write population values to file on this run
-        filename=model_name+"_%2.3f"%u+"_%2.3f"%pe+"_%2d"%dumpid+'.csv'
-        outfile=open(filename,'w')
-
-
-    # generate initial population of individuals
-     #pop structure is [opinion,certainty,start_opinion,n_iterations]
-
+def init_extremes(traders):
     # use pe to determine number of extremists (and hence number of moderates)
     n_extremists=pe*N
     N_P_plus=int(0.5+(n_extremists/2.0))
@@ -461,61 +457,19 @@ def calc_y(u, pe, traders, dump, dumpid):
     n_moderate=N-(N_P_plus+N_P_minus)
 
     # create extremists: Max then Min
+    keys = list(traders.keys())
     for i in range(N_P_plus):
-        pop[i][0]=Max_Op-(random.random()*extreme_distance)
-        pop[i][1]=u_e
-        pop[i][2]="extreme"
+        traders[keys[i]].opinion = Max_Op-(random.random()*extreme_distance)
+        traders[keys[i]].uncertainty = u_e
+        traders[keys[i]].start_opinion = "extreme"
 
     for i in range(N_P_minus):
-        pop[N_P_plus+i][0]=Min_Op+(random.random()*extreme_distance)
-        pop[N_P_plus+i][1]=u_e
-        pop[N_P_plus+i][2]="extreme"
+        index = keys[N_P_plus + i]
+        traders[index].opinion = Min_Op+(random.random()*extreme_distance)
+        traders[index].uncertainty = u_e
+        traders[index].start_opinion = "extreme"
 
-
-    # this is the main experiment loop
-    for iter in range(n_iter):
-
-        # write the line of agent opinions for this iteration
-        if(dump>0):
-            outstr=""
-            for i in range(N):
-                if(i<(n-1)):
-                    outstr+="%2.3f"%pop[i][0]+", "
-                else:
-                    outstr+="%2.3f"%pop[i][0]+"\n"
-            outfile.write(outstr)
-
-
-        #now do n updates
-
-        for i in range(n):
-
-            # randomly pick an individual to be influenced
-            agent=random.randint(0,N-1)
-
-            # randomly pick a different individual to be the influencer
-            influencer=agent
-            while(influencer==agent):
-                influencer=random.randint(0,N-1)
-
-            # allow them to interact and possibly alter opinions
-            # switching to variable names used by deffuant et al
-            x_j=pop[agent][0]
-            u_j=pop[agent][1]
-            x_i=pop[influencer][0]
-            u_i=pop[influencer][1]
-            h_ij=min(x_i+u_i, x_j+u_j) - max(x_i-u_i, x_j-u_j)
-            if(h_ij>u_i):
-                relagree=(h_ij/u_i)-1
-                delta_x_j=mu*relagree*(x_i-x_j)
-                delta_u_j=mu*relagree*(u_i-u_j)
-                pop[agent][0]=x_j+delta_x_j
-                pop[agent][1]=u_j+delta_u_j
-                # print "influence! dx, du=",delta_x_j,delta_u_j
-
-            # update the counts
-            pop[agent][3]=pop[agent][3]+1
-            pop[influencer][3]=pop[influencer][3]+1
+    return n_moderate
 
 
 # create a bunch of traders from traders_spec
@@ -561,49 +515,49 @@ def populate_market(traders_spec, traders, shuffle, verbose, model):
 
         return {'n_buyers':n_buyers, 'n_sellers':n_sellers}
 
-def add_traders(traders_spec, traders, shuffle, verbose):
-
-    # TODO: IMPROVE THIS
-    # counts number of buyers and sellers
-    n_buyers = 0
-    n_sellers = 0
-    for trader in traders:
-        if trader.tid[0] == 'B':
-            n_buyers += 1
-        elif trader.tid[0] == 'S':
-            n_sellers += 1
-
-    for bs in traders_spec['buyers']:
-            ttype = bs[0]
-            opinion = bs[2]
-            start_opinion = bs[3]
-            for b in range(bs[1]):
-                    tname = 'B%02d' % n_buyers  # buyer i.d. string
-                    traders[tname] = trader_type(ttype, tname, opinion, Min_Op, Max_Op, model, start_opinion)
-                    n_buyers = n_buyers + 1
-
-    if shuffle: shuffle_traders('B', n_buyers, traders)
-
-    for ss in traders_spec['sellers']:
-            ttype = ss[0]
-            opinion = ss[2]
-            start_opinion = ss[3]
-            for s in range(ss[1]):
-                    tname = 'S%02d' % n_sellers  # buyer i.d. string
-                    traders[tname] = trader_type(ttype, tname, opinion, Min_Op, Max_Op, model, start_opinion)
-                    n_sellers = n_sellers + 1
-
-    if shuffle: shuffle_traders('S', n_sellers, traders)
-
-    if verbose :
-            for t in range(n_buyers):
-                    bname = 'B%02d' % t
-                    print(traders[bname])
-            for t in range(n_sellers):
-                    bname = 'S%02d' % t
-                    print(traders[bname])
-
-    return {'n_buyers':n_buyers, 'n_sellers':n_sellers}
+# def add_traders(traders_spec, traders, shuffle, verbose):
+#
+#     # TODO: IMPROVE THIS
+#     # counts number of buyers and sellers
+#     n_buyers = 0
+#     n_sellers = 0
+#     for trader in traders:
+#         if trader.tid[0] == 'B':
+#             n_buyers += 1
+#         elif trader.tid[0] == 'S':
+#             n_sellers += 1
+#
+#     for bs in traders_spec['buyers']:
+#             ttype = bs[0]
+#             opinion = bs[2]
+#             start_opinion = bs[3]
+#             for b in range(bs[1]):
+#                     tname = 'B%02d' % n_buyers  # buyer i.d. string
+#                     traders[tname] = trader_type(ttype, tname, opinion, Min_Op, Max_Op, model, start_opinion)
+#                     n_buyers = n_buyers + 1
+#
+#     if shuffle: shuffle_traders('B', n_buyers, traders)
+#
+#     for ss in traders_spec['sellers']:
+#             ttype = ss[0]
+#             opinion = ss[2]
+#             start_opinion = ss[3]
+#             for s in range(ss[1]):
+#                     tname = 'S%02d' % n_sellers  # buyer i.d. string
+#                     traders[tname] = trader_type(ttype, tname, opinion, Min_Op, Max_Op, model, start_opinion)
+#                     n_sellers = n_sellers + 1
+#
+#     if shuffle: shuffle_traders('S', n_sellers, traders)
+#
+#     if verbose :
+#             for t in range(n_buyers):
+#                     bname = 'B%02d' % t
+#                     print(traders[bname])
+#             for t in range(n_sellers):
+#                     bname = 'S%02d' % t
+#                     print(traders[bname])
+#
+#     return {'n_buyers':n_buyers, 'n_sellers':n_sellers}
 
 # customer_orders(): allocate orders to traders
 # parameter "os" is order schedule
@@ -805,7 +759,7 @@ def customer_orders(time, last_update, traders, trader_stats, os, pending, verbo
 
 
 # one session in the market
-def market_session(sess_id, starttime, endtime, trader_spec, order_schedule, dumpfile, opfile, dump_each_trade, verbose, model):
+def market_session(sess_id, starttime, endtime, trader_spec, order_schedule, dumpfile, opfile, dump_each_trade, verbose, model, ys):
 
 
         # initialise the exchange
@@ -816,6 +770,12 @@ def market_session(sess_id, starttime, endtime, trader_spec, order_schedule, dum
         traders = {}
         trader_stats = populate_market(trader_spec, traders, True, verbose, model)
 
+        # assuming shuffle is good
+        # initialise extremists if RA
+        n_moderate = 0
+        if model == 'RA':
+            # set n_moderate returned by init_extremes to global var
+            n_moderate = init_extremes(traders)
 
         # timestep set so that can process all traders in one second
         # NB minimum interarrival time of customer orders may be much less than this!!
@@ -909,13 +869,14 @@ def market_session(sess_id, starttime, endtime, trader_spec, order_schedule, dum
                 time = time + timestep
 
 
-
         # end of an experiment -- dump the tape
         exchange.tape_dump('transactions.csv', 'w', 'keep')
 
-
         # write trade_stats for this experiment NB end-of-session summary only
         trade_stats(sess_id, traders, tdump, time, exchange.publish_lob(time, lob_verbose))
+
+        if model_name == "RA":
+            ys.append(calc_y(1, 0.5, extreme_distance, Max_Op, Min_Op, n_moderate, traders))
 
 
 #############################
@@ -976,7 +937,7 @@ if __name__ == "__main__":
 
         # run a sequence of trials, one session per trial
 
-        n_trials = 1
+        n_trials = 2
         tdump=open('avg_balance.csv','w')
         trial = 1
         if n_trials > 1:
@@ -987,15 +948,20 @@ if __name__ == "__main__":
         filename=model_name+"opinions"+'.csv'
         odump=open(filename,'w')
 
+        # y metric array
+        ys = []
+
         while (trial<(n_trials+1)):
                trial_id = 'trial%04d' % trial
-               market_session(trial_id, start_time, end_time, traders_spec, order_sched, tdump, odump, dump_all, True, model_name)
+               market_session(trial_id, start_time, end_time, traders_spec, order_sched, tdump, odump, dump_all, True, model_name, ys)
                tdump.flush()
                odump.flush()
                trial = trial + 1
         odump.close()
         tdump.close()
 
+        for y in ys:
+            print(y)
         sys.exit('Done Now')
 
 

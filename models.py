@@ -6,6 +6,11 @@ import random
 
 # # Opinion dynamics models
 
+# increment n iterations for traders that communicated
+def inc_n_iter(traders):
+    for trader in traders:
+        trader.n_iter += 1
+
 # bounded confidence model
 # (w, delta, k) are confidence factor, deviation threshold and time step respectively
 def bounded_confidence_step(w, delta, k, traders):
@@ -26,6 +31,7 @@ def bounded_confidence_step(w, delta, k, traders):
         j_update = w * X_j + (1 - w) * X_i
         traders[j].set_opinion(j_update)
 
+    inc_n_iter([traders[i], traders[j]])
 
 def relative_agreement_step(weight, traders):
     i, j = random.sample(list(traders.keys()), 2)
@@ -53,6 +59,8 @@ def relative_agreement_step(weight, traders):
     if (h_ij > u_i) :
         traders[j].set_opinion( X_j + (weight * RA_ij * (X_i - X_j)) )
         traders[j].set_uncertainty(u_j + (weight * RA_ij * (u_i - u_j)))
+
+    inc_n_iter([traders[i], traders[j]])
 
 def relative_disagreement_step(weight, prob, traders):
     i, j = random.sample(list(traders.keys()), 2)
@@ -84,3 +92,5 @@ def relative_disagreement_step(weight, prob, traders):
         if (g_ij > u_i) :
             traders[j].set_opinion( X_j - (weight * RD_ij * (X_i - X_j)) )
             traders[j].set_uncertainty(u_j + (weight * RD_ij * (u_i - u_j)))
+
+    inc_n_iter([traders[i], traders[j]])

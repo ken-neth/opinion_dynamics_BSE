@@ -43,6 +43,7 @@ class Trader:
                 self.upper_un_bound = 2
 
                 self.start_opinion = start_opinion
+                self.n_iter = 0
 
 
         def __str__(self):
