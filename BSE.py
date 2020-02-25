@@ -82,7 +82,7 @@ Min_mod_op = Min_Op + extreme_distance
 Max_mod_op = Max_Op - extreme_distance
 
 #number of iid repetitions of the simulation at each (u,pe) point
-sims_per_point = 50
+sims_per_point = 5
 #number of runs to dump as timeseries of opinion for each agent at each (u,pe)
 n_dumps = 0
 
@@ -876,7 +876,8 @@ def market_session(sess_id, starttime, endtime, trader_spec, order_schedule, dum
         trade_stats(sess_id, traders, tdump, time, exchange.publish_lob(time, lob_verbose))
 
         if model_name == "RA":
-            ys.append(calc_y(1, 0.5, extreme_distance, Max_Op, Min_Op, n_moderate, traders))
+            # append y value to ys 
+            ys.append(calc_y(u_e, pe, extreme_distance, Max_Op, Min_Op, n_moderate, traders)[2])
 
 
 #############################
@@ -951,17 +952,24 @@ if __name__ == "__main__":
         # y metric array
         ys = []
 
-        while (trial<(n_trials+1)):
-               trial_id = 'trial%04d' % trial
-               market_session(trial_id, start_time, end_time, traders_spec, order_sched, tdump, odump, dump_all, True, model_name, ys)
-               tdump.flush()
-               odump.flush()
-               trial = trial + 1
+        for sim in range(sims_per_point):
+            trial_id = 'trial%04d' % sim
+            market_session(trial_id, start_time, end_time, traders_spec, order_sched, tdump, odump, dump_all, True, model_name, ys)
+            tdump.flush()
+            odump.flush()
+        # get stats on y metric trials
+        print(calc_y_stats(u_e, pe, ys, sims_per_point))
+
+
+        # while (trial<(n_trials+1)):
+        #        trial_id = 'trial%04d' % trial
+        #        market_session(trial_id, start_time, end_time, traders_spec, order_sched, tdump, odump, dump_all, True, model_name, ys)
+        #        tdump.flush()
+        #        odump.flush()
+        #        trial = trial + 1
         odump.close()
         tdump.close()
 
-        for y in ys:
-            print(y)
         sys.exit('Done Now')
 
 

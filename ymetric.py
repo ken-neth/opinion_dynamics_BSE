@@ -1,3 +1,5 @@
+from math import sqrt
+
 # calc_y()
 def calc_y(u, pe, extreme_distance, Max_Op, Min_Op, n_moderate, traders):
 
