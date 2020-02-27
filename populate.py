@@ -1,5 +1,5 @@
 import random
-from traders import Order, Trader, Trader_Giveaway, Trader_Shaver, Trader_Sniper, Trader_ZIC, Trader_ZIP
+from traders import Order, Trader, Trader_Giveaway, Trader_Shaver, Trader_Sniper, Trader_ZIC, Trader_ZIP, Trader_opinionated_ZIC
 
 def trader_type(robottype, name, min_Op, max_Op, model, start_opinion):
             opinion = 0.5
@@ -25,6 +25,8 @@ def trader_type(robottype, name, min_Op, max_Op, model, start_opinion):
                     return Trader_Sniper('SNPR', name, 0.00, 0, opinion, uncertainty, min_Op, max_Op, start_opinion)
             elif robottype == 'ZIP':
                     return Trader_ZIP('ZIP', name, 0.00, 0, opinion, uncertainty, min_Op, max_Op, start_opinion)
+            elif robottype == 'O-ZIC':
+                    return Trader_opinionated_ZIC('O-ZIC', name, 0.00, 0, opinion, uncertainty, min_Op, max_Op, start_opinion)
             else:
                     sys.exit('FATAL: don\'t know robot type %s\n' % robottype)
 

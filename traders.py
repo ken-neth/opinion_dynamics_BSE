@@ -178,6 +178,41 @@ class Trader_ZIC(Trader):
                 return order
 
 
+class Trader_opinionated_ZIC(Trader):
+
+        def getorder(self, time, countdown, lob):
+
+                if len(self.orders) < 1:
+                        # no orders: return NULL
+                        order = None
+                else:
+                        minprice = lob['bids']['worst']
+                        maxprice = lob['asks']['worst']
+                        qid = lob['QID']
+                        limit = self.orders[0].price
+                        otype = self.orders[0].otype
+
+                        # get own opinion
+                        opinion = self.opinion
+
+                        if otype == 'Bid':
+                                if opinion > 0.8: # price will go up so bid up to maxprice
+                                    limit = maxprice
+                                elif opinion < -0.8: # price will go down so only bid minprice
+                                    limit = minprice
+                                quoteprice = random.randint(minprice, limit)
+                        else:
+                                if opinion > 0.8: # price will go up so only accept maxprice
+                                    limit = maxprice
+                                elif opinion < -0.8: # price will go down so accept all bids
+                                    limit = minprice
+                                quoteprice = random.randint(limit, maxprice)
+                                # NB should check it == 'Ask' and barf if not
+                        order = Order(self.tid, otype, quoteprice, self.orders[0].qty, time, qid)
+                        self.lastquote = order
+                return order
+
+
 # Trader subclass Shaver
 # shaves a penny off the best price
 # if there is no best price, creates "stub quote" at system max/min
@@ -247,6 +282,7 @@ class Trader_Sniper(Trader):
 
 # Trader subclass ZIP
 # After Cliff 1997
+# NOTE: Kenny change init to suit opinion dynamics models
 class Trader_ZIP(Trader):
 
         # ZIP init key param-values are those used in Cliff's 1997 original HP Labs tech report

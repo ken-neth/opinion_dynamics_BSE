@@ -69,7 +69,7 @@ pe_steps = 12
 Max_Op = 1.0
 Min_Op = -1.0
 
-model_name = "RD"
+model_name = "BC"
 
 # intensity of interactions
 mu = 0.2 # used for all models
@@ -86,6 +86,9 @@ Max_mod_op = Max_Op - extreme_distance
 sims_per_point = 5
 #number of runs to dump as timeseries of opinion for each agent at each (u,pe)
 n_dumps = 0
+
+# whether or not to start with extremes
+extreme_start = 0
 
 # ==========================================
 #       class order is in traders.py
@@ -760,7 +763,7 @@ def customer_orders(time, last_update, traders, trader_stats, os, pending, verbo
 
 
 # one session in the market
-def market_session(sess_id, starttime, endtime, trader_spec, order_schedule, dumpfile, opfile, dump_each_trade, verbose, model, ys=[], u=1, pei=1):
+def market_session(sess_id, starttime, endtime, trader_spec, order_schedule, dumpfile, opfile, dump_each_trade, verbose, model, ys=[], u=0, pei=pe_max):
 
 
         # initialise the exchange
@@ -774,7 +777,7 @@ def market_session(sess_id, starttime, endtime, trader_spec, order_schedule, dum
         # assuming shuffle is good
         # initialise extremists if RA
         n_moderate = 0
-        if model == 'RA':
+        if model == 'RA' and extreme_start == 1:
             # set n_moderate returned by init_extremes to global var
             n_moderate = init_extremes(pei, traders)
 
@@ -794,6 +797,8 @@ def market_session(sess_id, starttime, endtime, trader_spec, order_schedule, dum
         respond_verbose = False
         bookkeep_verbose = False
 
+        extremes_made = False
+
         pending_cust_orders = []
 
         if verbose: print('\n%s;  ' % (sess_id))
@@ -805,6 +810,11 @@ def market_session(sess_id, starttime, endtime, trader_spec, order_schedule, dum
                 time_left = (endtime - time) / duration
 
                 # if verbose: print('\n\n%s; t=%08.2f (%4.1f/100) ' % (sess_id, time, time_left*100))
+
+                if ((endtime - time) < duration / 2) and extremes_made == False:
+                    print("extremed made")
+                    init_extremes(pei, traders)
+                    extremes_made = True
 
                 trade = None
                 # ==========================================================
@@ -918,12 +928,12 @@ if __name__ == "__main__":
 
 
         # range1 = (95, 95, schedule_offsetfn)
-        range1 = (0, 200)
+        range1 = (50, 150)
         supply_schedule = [ {'from':start_time, 'to':end_time, 'ranges':[range1], 'stepmode':'fixed'}
                           ]
 
         # range1 = (105, 105, schedule_offsetfn)
-        range1 = (0, 200)
+        range1 = (50, 150)
         demand_schedule = [ {'from':start_time, 'to':end_time, 'ranges':[range1], 'stepmode':'fixed'}
                           ]
 
