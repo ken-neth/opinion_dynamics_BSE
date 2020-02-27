@@ -69,12 +69,13 @@ pe_steps = 12
 Max_Op = 1.0
 Min_Op = -1.0
 
-model_name = "BC"
+
+model_name = "RA"
 
 # intensity of interactions
-mu = 0.2 # used for all models
-delta = 0.1 # used for Bounded Confidence Model
-lmda = 0.1 # used for Relative Disagreement Model
+mu = 0.2 # used for all models eg. 0.2
+delta = 0.1 # used for Bounded Confidence Model eg. 0.1
+lmda = 0.1 # used for Relative Disagreement Model eg. 0.1
 
 
 u_e = 0.1 # extremism uncertainty
@@ -89,6 +90,9 @@ n_dumps = 0
 
 # whether or not to start with extremes
 extreme_start = 0
+
+# whether or not to calculate y metrics
+y_stats = False
 
 # ==========================================
 #       class order is in traders.py
@@ -486,7 +490,7 @@ def populate_market(traders_spec, traders, shuffle, verbose, model):
                 ttype = bs[0]
                 for b in range(bs[1]):
                         tname = 'B%02d' % n_buyers  # buyer i.d. string
-                        traders[tname] = trader_type(ttype, tname, Min_Op, Max_Op, model, "moderate")
+                        traders[tname] = trader_type(ttype, tname, Min_Op, Max_Op, u_min, u_max, model, "moderate")
                         n_buyers = n_buyers + 1
 
         if n_buyers < 1:
@@ -500,7 +504,7 @@ def populate_market(traders_spec, traders, shuffle, verbose, model):
                 ttype = ss[0]
                 for s in range(ss[1]):
                         tname = 'S%02d' % n_sellers  # buyer i.d. string
-                        traders[tname] = trader_type(ttype, tname, Min_Op, Max_Op, model, "moderate")
+                        traders[tname] = trader_type(ttype, tname, Min_Op, Max_Op, u_min, u_max, model, "moderate")
                         n_sellers = n_sellers + 1
 
         if n_sellers < 1:
@@ -886,7 +890,7 @@ def market_session(sess_id, starttime, endtime, trader_spec, order_schedule, dum
         # write trade_stats for this experiment NB end-of-session summary only
         trade_stats(sess_id, traders, tdump, time, exchange.publish_lob(time, lob_verbose))
 
-        if model_name == "RA":
+        if model_name == "RA" and y_stats == True:
             # append y value to ys
             ys.append(calc_y(u, pei, extreme_distance, Max_Op, Min_Op, n_moderate, traders)[2])
 
@@ -928,12 +932,12 @@ if __name__ == "__main__":
 
 
         # range1 = (95, 95, schedule_offsetfn)
-        range1 = (50, 150)
+        range1 = (10, 190)
         supply_schedule = [ {'from':start_time, 'to':end_time, 'ranges':[range1], 'stepmode':'fixed'}
                           ]
 
         # range1 = (105, 105, schedule_offsetfn)
-        range1 = (50, 150)
+        range1 = (10, 190)
         demand_schedule = [ {'from':start_time, 'to':end_time, 'ranges':[range1], 'stepmode':'fixed'}
                           ]
 
@@ -943,7 +947,7 @@ if __name__ == "__main__":
                        'interval':30, 'timemode':'periodic'}
 
         # buyers_spec = [('GVWY',10),('SHVR',10),('ZIC',10),('ZIP',10)]
-        buyers_spec = [('ZIC', N)]
+        buyers_spec = [('O-ZIC', N)]
         sellers_spec = buyers_spec
         traders_spec = {'sellers':sellers_spec, 'buyers':buyers_spec}
 

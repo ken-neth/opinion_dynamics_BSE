@@ -1,17 +1,18 @@
 import random
 from traders import Order, Trader, Trader_Giveaway, Trader_Shaver, Trader_Sniper, Trader_ZIC, Trader_ZIP, Trader_opinionated_ZIC
 
-def trader_type(robottype, name, min_Op, max_Op, model, start_opinion):
+def trader_type(robottype, name, min_Op, max_Op, u_min, u_max, model, start_opinion):
             opinion = 0.5
             uncertainty = 1.0
             if model == 'BC':
                 opinion = random.uniform(min_Op, max_Op)
             elif model == 'RA':
                 opinion = random.uniform(min_Op, max_Op)
-                uncertainty = random.uniform(0, 2)
+                uncertainty = random.uniform(u_min, u_max)
             elif model == 'RD':
                 opinion = random.uniform(min_Op, max_Op)
-                uncertainty = min((random.uniform(0.2, 2.0) + random.uniform(0, 1)), 2)
+                uncertainty = random.uniform(u_min, u_max)
+                # uncertainty = min((random.uniform(0.2, 2.0) + random.uniform(0, 1)), 2)
             else:
                 sys.exit('FATAL: don\'t know that opinion dynamic model type %s\n' % model);
 

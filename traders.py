@@ -177,7 +177,6 @@ class Trader_ZIC(Trader):
                         self.lastquote = order
                 return order
 
-
 class Trader_opinionated_ZIC(Trader):
 
         def getorder(self, time, countdown, lob):
@@ -192,20 +191,23 @@ class Trader_opinionated_ZIC(Trader):
                         limit = self.orders[0].price
                         otype = self.orders[0].otype
 
-                        # get own opinion
-                        opinion = self.opinion
+                        # set opinonated limit price using own opinion
+                        opinionated_limit = int(limit + self.opinion * 100)
+
+                        # make sure it's a valid bid
+                        if otype == 'Bid' and opinionated_limit < limit:
+                            limit = opinionated_limit
+                            if opinionated_limit < minprice:
+                                limit = minprice
+                        # make sure it's a valid ask
+                        if otype == 'Ask' and opinionated_limit > limit:
+                            limit = opinionated_limit
+                            if opinionated_limit > maxprice:
+                                limit = maxprice
 
                         if otype == 'Bid':
-                                if opinion > 0.8: # price will go up so bid up to maxprice
-                                    limit = maxprice
-                                elif opinion < -0.8: # price will go down so only bid minprice
-                                    limit = minprice
                                 quoteprice = random.randint(minprice, limit)
                         else:
-                                if opinion > 0.8: # price will go up so only accept maxprice
-                                    limit = maxprice
-                                elif opinion < -0.8: # price will go down so accept all bids
-                                    limit = minprice
                                 quoteprice = random.randint(limit, maxprice)
                                 # NB should check it == 'Ask' and barf if not
                         order = Order(self.tid, otype, quoteprice, self.orders[0].qty, time, qid)
