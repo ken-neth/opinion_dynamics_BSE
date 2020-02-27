@@ -61,4 +61,4 @@ def calc_y_stats(u,pe, ys, sims_per_point):
             y_min=y
     y_avg=y_sum/sims_per_point
     y_sd=sqrt((y_sumsq/sims_per_point)-(y_avg*y_avg))
-    return (y_max, y_min, y_avg, y_sd)
+    return (u, pe, y_max, y_min, y_avg, y_sd)

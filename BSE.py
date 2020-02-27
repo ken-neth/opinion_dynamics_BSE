@@ -59,16 +59,17 @@ ticksize = 1  # minimum change in price, in cents/pennies
 
 # population parameters
 N = 31
-# u_min = 0.2
-# u_max = 2.0
+u_min = 0.2
+u_max = 2.0
 u_steps = 19
+#range of global proportion of extremists (pe)
 pe_min = 0.025
-pe = 0.3
+pe_max = 0.3
 pe_steps = 12
 Max_Op = 1.0
 Min_Op = -1.0
 
-model_name = "RA"
+model_name = "RD"
 
 # intensity of interactions
 mu = 0.2 # used for all models
@@ -448,7 +449,7 @@ def opinion_stats(expid, traders, dumpfile, time):
                     dumpfile.write('%f, ' % o)
         dumpfile.write('\n');
 
-def init_extremes(traders):
+def init_extremes(pe, traders):
     # use pe to determine number of extremists (and hence number of moderates)
     n_extremists=pe*N
     N_P_plus=int(0.5+(n_extremists/2.0))
@@ -759,7 +760,7 @@ def customer_orders(time, last_update, traders, trader_stats, os, pending, verbo
 
 
 # one session in the market
-def market_session(sess_id, starttime, endtime, trader_spec, order_schedule, dumpfile, opfile, dump_each_trade, verbose, model, ys):
+def market_session(sess_id, starttime, endtime, trader_spec, order_schedule, dumpfile, opfile, dump_each_trade, verbose, model, ys=[], u=1, pei=1):
 
 
         # initialise the exchange
@@ -775,7 +776,7 @@ def market_session(sess_id, starttime, endtime, trader_spec, order_schedule, dum
         n_moderate = 0
         if model == 'RA':
             # set n_moderate returned by init_extremes to global var
-            n_moderate = init_extremes(traders)
+            n_moderate = init_extremes(pei, traders)
 
         # timestep set so that can process all traders in one second
         # NB minimum interarrival time of customer orders may be much less than this!!
@@ -876,8 +877,8 @@ def market_session(sess_id, starttime, endtime, trader_spec, order_schedule, dum
         trade_stats(sess_id, traders, tdump, time, exchange.publish_lob(time, lob_verbose))
 
         if model_name == "RA":
-            # append y value to ys 
-            ys.append(calc_y(u_e, pe, extreme_distance, Max_Op, Min_Op, n_moderate, traders)[2])
+            # append y value to ys
+            ys.append(calc_y(u, pei, extreme_distance, Max_Op, Min_Op, n_moderate, traders)[2])
 
 
 #############################
@@ -932,13 +933,13 @@ if __name__ == "__main__":
                        'interval':30, 'timemode':'periodic'}
 
         # buyers_spec = [('GVWY',10),('SHVR',10),('ZIC',10),('ZIP',10)]
-        buyers_spec = [('SNPR', N)]
+        buyers_spec = [('ZIC', N)]
         sellers_spec = buyers_spec
         traders_spec = {'sellers':sellers_spec, 'buyers':buyers_spec}
 
         # run a sequence of trials, one session per trial
 
-        n_trials = 2
+        n_trials = 1
         tdump=open('avg_balance.csv','w')
         trial = 1
         if n_trials > 1:
@@ -949,24 +950,41 @@ if __name__ == "__main__":
         filename=model_name+"opinions"+'.csv'
         odump=open(filename,'w')
 
+        #############################
+        #       y metric tests
+        #############################
         # y metric array
-        ys = []
+        # ys = []
+        # ymetricfile = 'ymetric.csv'
+        # ydump = open(ymetricfile, 'w')
+        #
+        # u_delta=(u_max-u_min)/(u_steps-1)
+        # pe_delta=(pe_max-pe_min)/(pe_steps-1)
+        #
+        # for u_i in range(u_steps):
+        #     u=u_min+(u_i*u_delta)
+        #     for pe_i in range(pe_steps):
+        #         pei=pe_min+(pe_i*pe_delta)
+        #         for sim in range(sims_per_point):
+        #             trial_id = 'trial%04d' % sim
+        #             market_session(trial_id, start_time, end_time, traders_spec, order_sched, tdump, odump, dump_all, True, model_name, ys, u, pei)
+        #             tdump.flush()
+        #             odump.flush()
+        #         # get stats on y metric trials
+        #         print(calc_y_stats(u, pei, ys, sims_per_point))
+        #         ydump.write('%f %f %f %f %f %f \n' % calc_y_stats(u, pei, ys, sims_per_point))
+        #         ys = []
+        # ydump.close()
 
-        for sim in range(sims_per_point):
-            trial_id = 'trial%04d' % sim
-            market_session(trial_id, start_time, end_time, traders_spec, order_sched, tdump, odump, dump_all, True, model_name, ys)
-            tdump.flush()
-            odump.flush()
-        # get stats on y metric trials
-        print(calc_y_stats(u_e, pe, ys, sims_per_point))
-
-
-        # while (trial<(n_trials+1)):
-        #        trial_id = 'trial%04d' % trial
-        #        market_session(trial_id, start_time, end_time, traders_spec, order_sched, tdump, odump, dump_all, True, model_name, ys)
-        #        tdump.flush()
-        #        odump.flush()
-        #        trial = trial + 1
+        #############################
+        #          GENERAL
+        #############################
+        while (trial<(n_trials+1)):
+               trial_id = 'trial%04d' % trial
+               market_session(trial_id, start_time, end_time, traders_spec, order_sched, tdump, odump, dump_all, True, model_name)
+               tdump.flush()
+               odump.flush()
+               trial = trial + 1
         odump.close()
         tdump.close()
 
