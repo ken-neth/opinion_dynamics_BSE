@@ -65,13 +65,13 @@ u_steps = 19
 #range of global proportion of extremists (pe)
 pe_min = 0.025
 # pe_max = 0.3
-pe_max = 0.2
+pe_max = 1.0
 pe_steps = 12
 Max_Op = 1.0
 Min_Op = -1.0
 
 
-model_name = "RA"
+model_name = "RD"
 
 # intensity of interactions
 mu = 0.05 # used for all models eg. 0.2
@@ -790,7 +790,7 @@ def market_session(sess_id, starttime, endtime, trader_spec, order_schedule, dum
         # assuming shuffle is good
         # initialise extremists if RA
         n_moderate = 0
-        if model == 'RA' and extreme_start == 1:
+        if extreme_start == 1:
             # set n_moderate returned by init_extremes to global var
             n_moderate = init_extremes(pei, traders)
 
