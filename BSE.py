@@ -50,7 +50,7 @@ import math
 import random
 from populate import trader_type, shuffle_traders
 from traders import Order
-from models import bounded_confidence_step, relative_agreement_step, relative_disagreement_step
+from models import bounded_confidence_step, relative_agreement_step, relative_disagreement_step, relative_disagreement_step_mix
 from ymetric import calc_y, calc_y_stats
 
 bse_sys_minprice = 1  # minimum price in the system, in cents/pennies
@@ -64,7 +64,8 @@ u_max = 2.0
 u_steps = 19
 #range of global proportion of extremists (pe)
 pe_min = 0.025
-pe_max = 0.3
+# pe_max = 0.3
+pe_max = 0.2
 pe_steps = 12
 Max_Op = 1.0
 Min_Op = -1.0
@@ -73,15 +74,16 @@ Min_Op = -1.0
 model_name = "RA"
 
 # intensity of interactions
-mu = 0.2 # used for all models eg. 0.2
+mu = 0.05 # used for all models eg. 0.2
 delta = 0.1 # used for Bounded Confidence Model eg. 0.1
-lmda = 0.1 # used for Relative Disagreement Model eg. 0.1
+lmda = 0.5 # used for Relative Disagreement Model eg. 0.1
 
 
 u_e = 0.1 # extremism uncertainty
 extreme_distance = 0.2 # how close one has to be to be an "extremist"
 Min_mod_op = Min_Op + extreme_distance
 Max_mod_op = Max_Op - extreme_distance
+plus_neg = [1, 0] # [1, 1] for both pos and neg extremes respectively
 
 #number of iid repetitions of the simulation at each (u,pe) point
 sims_per_point = 5
@@ -89,7 +91,7 @@ sims_per_point = 5
 n_dumps = 0
 
 # whether or not to start with extremes
-extreme_start = 0
+extreme_start = 1
 
 # whether or not to calculate y metrics
 y_stats = False
@@ -458,14 +460,21 @@ def opinion_stats(expid, traders, dumpfile, time):
 
 def init_extremes(pe, traders):
     # use pe to determine number of extremists (and hence number of moderates)
-    n_extremists=pe*N
+    n_extremists=pe*N*2
     N_P_plus=int(0.5+(n_extremists/2.0))
+    # N_P_plus=int(n_extremists)
+    print("N_P_plus: %d" % N_P_plus)
+
     #assume symmetric plus/minus
     N_P_minus=N_P_plus
-    n_moderate=N-(N_P_plus+N_P_minus)
+    # N_P_minus = 0
+    print("N_P_minus: %d" % N_P_minus)
+
+    n_moderate=2*N-(N_P_plus+N_P_minus)
 
     # create extremists: Max then Min
     keys = list(traders.keys())
+
     for i in range(N_P_plus):
         traders[keys[i]].opinion = Max_Op-(random.random()*extreme_distance)
         traders[keys[i]].uncertainty = u_e
@@ -801,7 +810,7 @@ def market_session(sess_id, starttime, endtime, trader_spec, order_schedule, dum
         respond_verbose = False
         bookkeep_verbose = False
 
-        extremes_made = False
+        extremes_made = True
 
         pending_cust_orders = []
 
@@ -879,7 +888,7 @@ def market_session(sess_id, starttime, endtime, trader_spec, order_schedule, dum
                 elif model_name == "RA":
                     relative_agreement_step(mu, traders)
                 elif model_name == "RD":
-                    relative_disagreement_step(mu, lmda, traders)
+                    relative_disagreement_step_mix(mu, lmda, traders)
 
                 time = time + timestep
 
@@ -947,7 +956,7 @@ if __name__ == "__main__":
                        'interval':30, 'timemode':'periodic'}
 
         # buyers_spec = [('GVWY',10),('SHVR',10),('ZIC',10),('ZIP',10)]
-        buyers_spec = [('O-ZIC', N)]
+        buyers_spec = [('ZIC', N)]
         sellers_spec = buyers_spec
         traders_spec = {'sellers':sellers_spec, 'buyers':buyers_spec}
 
