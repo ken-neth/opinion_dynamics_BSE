@@ -71,7 +71,7 @@ Max_Op = 1.0
 Min_Op = -1.0
 
 
-model_name = "RD"
+model_name = "BC"
 
 # intensity of interactions
 mu = 0.05 # used for all models eg. 0.2
@@ -83,7 +83,7 @@ u_e = 0.1 # extremism uncertainty
 extreme_distance = 0.2 # how close one has to be to be an "extremist"
 Min_mod_op = Min_Op + extreme_distance
 Max_mod_op = Max_Op - extreme_distance
-plus_neg = [1, 0] # [1, 1] for both pos and neg extremes respectively
+plus_neg = [1, 1] # [1, 1] for both pos and neg extremes respectively
 
 #number of iid repetitions of the simulation at each (u,pe) point
 sims_per_point = 5
@@ -461,12 +461,12 @@ def opinion_stats(expid, traders, dumpfile, time):
 def init_extremes(pe, traders):
     # use pe to determine number of extremists (and hence number of moderates)
     n_extremists=pe*N*2
-    N_P_plus=int(0.5+(n_extremists/2.0))
-    # N_P_plus=int(n_extremists)
+    N_P_plus=plus_neg[0]*int(0.5+(n_extremists/sum(plus_neg)))
+    # N_P_plus=int(0.5 + n_extremists)
     print("N_P_plus: %d" % N_P_plus)
 
     #assume symmetric plus/minus
-    N_P_minus=N_P_plus
+    N_P_minus=plus_neg[1]*int(0.5+(n_extremists/sum(plus_neg)))
     # N_P_minus = 0
     print("N_P_minus: %d" % N_P_minus)
 
