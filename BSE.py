@@ -65,16 +65,16 @@ u_steps = 19
 #range of global proportion of extremists (pe)
 pe_min = 0.025
 # pe_max = 0.3
-pe_max = 1.0
+pe_max = 0.8
 pe_steps = 12
 Max_Op = 1.0
 Min_Op = -1.0
 
 
-model_name = "BC"
+model_name = "RA"
 
 # intensity of interactions
-mu = 0.05 # used for all models eg. 0.2
+mu = 0.2 # used for all models eg. 0.2
 delta = 0.1 # used for Bounded Confidence Model eg. 0.1
 lmda = 0.5 # used for Relative Disagreement Model eg. 0.1
 
@@ -83,7 +83,7 @@ u_e = 0.1 # extremism uncertainty
 extreme_distance = 0.2 # how close one has to be to be an "extremist"
 Min_mod_op = Min_Op + extreme_distance
 Max_mod_op = Max_Op - extreme_distance
-plus_neg = [1, 1] # [1, 1] for both pos and neg extremes respectively
+plus_neg = [1, 0] # [1, 1] for both pos and neg extremes respectively
 
 #number of iid repetitions of the simulation at each (u,pe) point
 sims_per_point = 5
@@ -956,7 +956,7 @@ if __name__ == "__main__":
                        'interval':30, 'timemode':'periodic'}
 
         # buyers_spec = [('GVWY',10),('SHVR',10),('ZIC',10),('ZIP',10)]
-        buyers_spec = [('ZIC', N)]
+        buyers_spec = [('O-ZIC', N)]
         sellers_spec = buyers_spec
         traders_spec = {'sellers':sellers_spec, 'buyers':buyers_spec}
 
