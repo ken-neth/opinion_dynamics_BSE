@@ -14,5 +14,11 @@ One motivation is to create a rigorous training dataset for fraud detection on c
 python BSE.py
 ```
 
+The main program runs in BSE.py, variables are defined at the top for you to change.
+By default it uses O-ZIC traders from traders.py.
+
+Originally the BristolStockExchange BSE project was in one file.
+I separated the program into 3 files: BSE.py, populate.py, and traders.py.
+
 ## License
 [MIT](https://choosealicense.com/licenses/mit/)

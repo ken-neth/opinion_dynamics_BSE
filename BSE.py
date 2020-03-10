@@ -65,18 +65,18 @@ u_steps = 19
 #range of global proportion of extremists (pe)
 pe_min = 0.025
 # pe_max = 0.3
-pe_max = 0.8
+pe_max = 1.0
 pe_steps = 12
 Max_Op = 1.0
 Min_Op = -1.0
 
 
-model_name = "RA"
+model_name = "BC"
 
 # intensity of interactions
 mu = 0.2 # used for all models eg. 0.2
-delta = 0.1 # used for Bounded Confidence Model eg. 0.1
-lmda = 0.5 # used for Relative Disagreement Model eg. 0.1
+delta = 0.4 # used for Bounded Confidence Model eg. 0.1
+lmda = 1.0 # used for Relative Disagreement Model eg. 0.1
 
 
 u_e = 0.1 # extremism uncertainty
@@ -84,6 +84,7 @@ extreme_distance = 0.2 # how close one has to be to be an "extremist"
 Min_mod_op = Min_Op + extreme_distance
 Max_mod_op = Max_Op - extreme_distance
 plus_neg = [1, 0] # [1, 1] for both pos and neg extremes respectively
+
 
 #number of iid repetitions of the simulation at each (u,pe) point
 sims_per_point = 5
@@ -810,11 +811,11 @@ def market_session(sess_id, starttime, endtime, trader_spec, order_schedule, dum
         respond_verbose = False
         bookkeep_verbose = False
 
-        extremes_made = True
-
         pending_cust_orders = []
 
         if verbose: print('\n%s;  ' % (sess_id))
+
+        extremes_made = 0 # extremes half way through
 
         while time < endtime:
                 # ==========================================================
@@ -824,10 +825,10 @@ def market_session(sess_id, starttime, endtime, trader_spec, order_schedule, dum
 
                 # if verbose: print('\n\n%s; t=%08.2f (%4.1f/100) ' % (sess_id, time, time_left*100))
 
-                if ((endtime - time) < duration / 2) and extremes_made == False:
+                if ((endtime - time) < duration / 2) and extremes_made == 1:
                     print("extremed made")
                     init_extremes(pei, traders)
-                    extremes_made = True
+                    extremes_made = False
 
                 trade = None
                 # ==========================================================
@@ -956,7 +957,7 @@ if __name__ == "__main__":
                        'interval':30, 'timemode':'periodic'}
 
         # buyers_spec = [('GVWY',10),('SHVR',10),('ZIC',10),('ZIP',10)]
-        buyers_spec = [('O-ZIC', N)]
+        buyers_spec = [('ZIC', N)]
         sellers_spec = buyers_spec
         traders_spec = {'sellers':sellers_spec, 'buyers':buyers_spec}
 
