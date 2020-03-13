@@ -177,43 +177,6 @@ class Trader_ZIC(Trader):
                         self.lastquote = order
                 return order
 
-class Trader_opinionated_ZIC(Trader):
-
-        def getorder(self, time, countdown, lob):
-
-                if len(self.orders) < 1:
-                        # no orders: return NULL
-                        order = None
-                else:
-                        minprice = lob['bids']['worst']
-                        maxprice = lob['asks']['worst']
-                        qid = lob['QID']
-                        limit = self.orders[0].price
-                        otype = self.orders[0].otype
-
-                        # set opinonated limit price using own opinion
-                        opinionated_limit = int(limit + self.opinion * 100)
-
-                        # make sure it's a valid bid
-                        if otype == 'Bid' and opinionated_limit < limit:
-                            limit = opinionated_limit
-                            if opinionated_limit < minprice:
-                                limit = minprice
-                        # make sure it's a valid ask
-                        if otype == 'Ask' and opinionated_limit > limit:
-                            limit = opinionated_limit
-                            if opinionated_limit > maxprice:
-                                limit = maxprice
-
-                        if otype == 'Bid':
-                                quoteprice = random.randint(minprice, limit)
-                        else:
-                                quoteprice = random.randint(limit, maxprice)
-                                # NB should check it == 'Ask' and barf if not
-                        order = Order(self.tid, otype, quoteprice, self.orders[0].qty, time, qid)
-                        self.lastquote = order
-                return order
-
 
 # Trader subclass Shaver
 # shaves a penny off the best price
@@ -505,4 +468,71 @@ class Trader_ZIP(Trader):
 
 
 
-##########################---trader-types have all been defined now--################
+##########################---original trader-types have all been defined now--################
+
+
+##################--Opinionated Traders below here--#############
+
+class Trader_opinionated_ZIC(Trader):
+
+        def getorder(self, time, countdown, lob):
+
+                if len(self.orders) < 1:
+                        # no orders: return NULL
+                        order = None
+                else:
+                        minprice = lob['bids']['worst']
+                        maxprice = lob['asks']['worst']
+                        qid = lob['QID']
+                        limit = self.orders[0].price
+                        otype = self.orders[0].otype
+
+                        # set opinonated limit price using own opinion
+                        opinionated_limit = int(limit + self.opinion * 100)
+
+                        # make sure it's a valid bid
+                        if otype == 'Bid' and opinionated_limit < limit:
+                            limit = opinionated_limit
+                            if opinionated_limit < minprice:
+                                limit = minprice
+                        # make sure it's a valid ask
+                        if otype == 'Ask' and opinionated_limit > limit:
+                            limit = opinionated_limit
+                            if opinionated_limit > maxprice:
+                                limit = maxprice
+
+                        if otype == 'Bid':
+                                quoteprice = random.randint(minprice, limit)
+                        else:
+                                quoteprice = random.randint(limit, maxprice)
+                                # NB should check it == 'Ask' and barf if not
+                        order = Order(self.tid, otype, quoteprice, self.orders[0].qty, time, qid)
+                        self.lastquote = order
+                return order
+
+class Trader_Bubble_ZIC(Trader):
+
+        def getorder(self, time, countdown, lob, k, a, p, T, t):
+
+            qid = lob['QID']
+            otype = self.orders[0].otype
+
+            # dividends
+            dividends = []
+            d_bar = float(sum(dividends)/4)
+
+            D_T = 60.0
+            D_t = d_bar * (T - t + 1) + D_T
+
+            u_rand = random.uniform(0, k*D_t)
+
+            limit = ((1 - a) * u_rand) + (a * p)
+
+            if otype == 'Bid':
+                    quoteprice = min(limit, self.balance)
+            else:
+                    quoteprice = limit
+            order = Order(self.tid, otype, quoteprice, self.orders[0].qty, time, qid)
+            self.lastquote = order
+            
+            return order
