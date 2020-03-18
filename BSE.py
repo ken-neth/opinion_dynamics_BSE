@@ -354,6 +354,7 @@ class Exchange(Orderbook):
                                                'qty': order.qty
                                               }
                         self.tape.append(transaction_record)
+
                         return transaction_record
                 else:
                         return None
@@ -361,11 +362,21 @@ class Exchange(Orderbook):
 
 
         def tape_dump(self, fname, fmode, tmode):
+
                 dumpfile = open(fname, fmode)
+                sum_trades = 0
+                count_trades = 0
                 for tapeitem in self.tape:
                         if tapeitem['type'] == 'Trade' :
                                 dumpfile.write('%s, %s\n' % (tapeitem['time'], tapeitem['price']))
+                                sum_trades += int(tapeitem['price'])
+                                count_trades += 1
                 dumpfile.close()
+
+                # store average transaction price for market session:
+                global current_avg
+                current_avg = sum_trades/count_trades
+
                 if tmode == 'wipe':
                         self.tape = []
 
@@ -1015,7 +1026,7 @@ if __name__ == "__main__":
                trial = trial + 1
         odump.close()
         tdump.close()
-
+        print("current_avg: %f" % current_avg)
         sys.exit('Done Now')
 
 
