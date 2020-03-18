@@ -97,6 +97,9 @@ extreme_start = 1
 # whether or not to calculate y metrics
 y_stats = False
 
+# current average price
+current_avg = 0.0
+
 # ==========================================
 #       class order is in traders.py
 # ==========================================
@@ -774,15 +777,9 @@ def customer_orders(time, last_update, traders, trader_stats, os, pending, verbo
                                 new_pending.append(order)
         return [new_pending, cancellations]
 
-
-
-# one session in the market
-def market_session(sess_id, starttime, endtime, trader_spec, order_schedule, dumpfile, opfile, dump_each_trade, verbose, model, ys=[], u=0, pei=pe_max):
-
-
+def init_session(trader_spec, verbose, model, pei=pe_max):
         # initialise the exchange
         exchange = Exchange()
-
 
         # create a bunch of traders
         traders = {}
@@ -794,6 +791,11 @@ def market_session(sess_id, starttime, endtime, trader_spec, order_schedule, dum
         if extreme_start == 1:
             # set n_moderate returned by init_extremes to global var
             n_moderate = init_extremes(pei, traders)
+
+        return exchange, traders, trader_stats
+
+# one session in the market
+def market_session(sess_id, starttime, endtime, exchange, traders, trader_stats, order_schedule, dumpfile, opfile, dump_each_trade, verbose, model, ys=[], u=0):
 
         # timestep set so that can process all traders in one second
         # NB minimum interarrival time of customer orders may be much less than this!!
@@ -915,7 +917,7 @@ if __name__ == "__main__":
         # set up parameters for the session
 
         start_time = 0.0
-        end_time = 180.0
+        end_time = 240.0
         duration = end_time - start_time
 
 
@@ -1003,9 +1005,11 @@ if __name__ == "__main__":
         #############################
         #          GENERAL
         #############################
+        exchange, traders, traders_stats = init_session(traders_spec, True, model_name)
+
         while (trial<(n_trials+1)):
                trial_id = 'trial%04d' % trial
-               market_session(trial_id, start_time, end_time, traders_spec, order_sched, tdump, odump, dump_all, True, model_name)
+               market_session(trial_id, start_time, end_time, exchange, traders, traders_stats, order_sched, tdump, odump, dump_all, True, model_name)
                tdump.flush()
                odump.flush()
                trial = trial + 1
