@@ -58,7 +58,10 @@ bse_sys_maxprice = 1000  # maximum price in the system, in cents/pennies
 ticksize = 1  # minimum change in price, in cents/pennies
 
 # population parameters
-N = 31
+N = 6
+# number of trials/time periods
+n_trials = 15
+
 u_min = 0.2
 u_max = 2.0
 u_steps = 19
@@ -98,7 +101,9 @@ extreme_start = 1
 y_stats = False
 
 # current average price
-current_avg = 0.0
+current_avg = 100
+
+
 
 # ==========================================
 #       class order is in traders.py
@@ -375,7 +380,8 @@ class Exchange(Orderbook):
 
                 # store average transaction price for market session:
                 global current_avg
-                current_avg = sum_trades/count_trades
+                if count_trades > 0:
+                    current_avg = sum_trades/count_trades
 
                 if tmode == 'wipe':
                         self.tape = []
@@ -866,13 +872,17 @@ def market_session(sess_id, starttime, endtime, exchange, traders, trader_stats,
                 # get a limit-order quote (or None) from a randomly chosen trader
                 # ==========================================================
                 tid = list(traders.keys())[random.randint(0, len(traders) - 1)]
-                order = traders[tid].getorder(time, time_left, exchange.publish_lob(time, lob_verbose))
+
+                if traders[tid].ttype == 'B-ZIC':
+                    order = traders[tid].getorder(time, time_left, exchange.publish_lob(time, lob_verbose), n_trials, sess_id, current_avg)
+                else:
+                    order = traders[tid].getorder(time, time_left, exchange.publish_lob(time, lob_verbose))
 
                 # if verbose: print('Trader Quote: %s' % (order))
 
                 if order != None:
-                        if order.otype == 'Ask' and order.price < traders[tid].orders[0].price: sys.exit('Bad ask')
-                        if order.otype == 'Bid' and order.price > traders[tid].orders[0].price: sys.exit('Bad bid')
+                        if order.otype == 'Ask' and order.price < traders[tid].orders[0].price: sys.exit('Bad ask: %d < %d' % (order.price, traders[tid].orders[0].price))
+                        if order.otype == 'Bid' and order.price > traders[tid].orders[0].price: sys.exit('Bad bid: %d > %d' % (order.price, traders[tid].orders[0].price))
                         # ======================================================
                         #                send order to exchange
                         # ======================================================
@@ -972,13 +982,12 @@ if __name__ == "__main__":
                        'interval':30, 'timemode':'periodic'}
 
         # buyers_spec = [('GVWY',10),('SHVR',10),('ZIC',10),('ZIP',10)]
-        buyers_spec = [('O-ZIC', N)]
+        buyers_spec = [('B-ZIC', N)]
         sellers_spec = buyers_spec
         traders_spec = {'sellers':sellers_spec, 'buyers':buyers_spec}
 
         # run a sequence of trials, one session per trial
 
-        n_trials = 5
         tdump=open('avg_balance.csv','w')
         trial = 1
         if n_trials > 1:

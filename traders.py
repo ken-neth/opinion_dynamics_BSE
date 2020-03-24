@@ -512,27 +512,52 @@ class Trader_opinionated_ZIC(Trader):
 
 class Trader_Bubble_ZIC(Trader):
 
-        def getorder(self, time, countdown, lob, k, a, p, T, t):
-
-            qid = lob['QID']
-            otype = self.orders[0].otype
-
-            # dividends
-            dividends = []
-            d_bar = float(sum(dividends)/4)
-
-            D_T = 60.0
-            D_t = d_bar * (T - t + 1) + D_T
-
-            u_rand = random.uniform(0, k*D_t)
-
-            limit = ((1 - a) * u_rand) + (a * p)
-
-            if otype == 'Bid':
-                    quoteprice = min(limit, self.balance)
+        def getorder(self, time, countdown, lob, T, t, p):
+            if len(self.orders) < 1:
+                    # no orders: return NULL
+                    order = None
             else:
-                    quoteprice = limit
-            order = Order(self.tid, otype, quoteprice, self.orders[0].qty, time, qid)
-            self.lastquote = order
-            
+                k = 4.0846 # k = multiplier > 0
+                a = 0.8480 # a = weighting
+                varphi = 0.01674 # varphi > 0
+                # T = number of trading periods
+                # t = current trading period
+                # p = previous average transaction price
+
+                qid = lob['QID']
+                otype = self.orders[0].otype
+
+                # dividends
+                dividends = [0, 0.04, 0.14, 0.2]
+                d_bar = float(sum(dividends)/4)
+
+                D_T = 60.0
+                D_t = d_bar * (T - int(t[5:]) + 1) + D_T
+
+                u_rand = random.uniform(0, k*D_t)
+
+                limit = ((1 - a) * u_rand) + (a * p)
+
+                # make sure it's a valid bid
+
+                minprice = lob['bids']['worst']
+                maxprice = lob['asks']['worst']
+
+                if otype == 'Bid' and limit > self.orders[0].price :
+                        limit = minprice
+                # make sure it's a valid ask
+                if otype == 'Ask' and limit < self.orders[0].price :
+                        limit = maxprice
+
+                if otype == 'Bid':
+                        # quoteprice = min(limit, self.balance)
+                        quoteprice = limit
+                        print('bid limit: %d'% quoteprice);
+                else:
+                        quoteprice = limit
+                        print('ask limit: %d'% limit);
+
+                order = Order(self.tid, otype, quoteprice, self.orders[0].qty, time, qid)
+                self.lastquote = order
+
             return order
