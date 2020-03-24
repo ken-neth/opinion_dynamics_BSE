@@ -978,7 +978,7 @@ if __name__ == "__main__":
 
         # run a sequence of trials, one session per trial
 
-        n_trials = 1
+        n_trials = 5
         tdump=open('avg_balance.csv','w')
         trial = 1
         if n_trials > 1:
