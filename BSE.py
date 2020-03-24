@@ -446,6 +446,8 @@ def trade_stats(expid, traders, dumpfile, time, lob):
                 dumpfile.write('%d, ' % (lob['asks']['best']))
         else:
                 dumpfile.write('N, ')
+        # add current_avg to dumpfile
+        dumpfile.write('%d, ' % (current_avg));
         dumpfile.write('\n');
 
 
@@ -970,13 +972,13 @@ if __name__ == "__main__":
                        'interval':30, 'timemode':'periodic'}
 
         # buyers_spec = [('GVWY',10),('SHVR',10),('ZIC',10),('ZIP',10)]
-        buyers_spec = [('ZIC', N)]
+        buyers_spec = [('O-ZIC', N)]
         sellers_spec = buyers_spec
         traders_spec = {'sellers':sellers_spec, 'buyers':buyers_spec}
 
         # run a sequence of trials, one session per trial
 
-        n_trials = 1
+        n_trials = 15
         tdump=open('avg_balance.csv','w')
         trial = 1
         if n_trials > 1:
@@ -1024,9 +1026,10 @@ if __name__ == "__main__":
                tdump.flush()
                odump.flush()
                trial = trial + 1
+               print("!!!!!!!!!!!!!!!!!!!!!!!!!\n current_avg: %f" % current_avg)
+               current_avg = 0
         odump.close()
         tdump.close()
-        print("current_avg: %f" % current_avg)
         sys.exit('Done Now')
 
 
