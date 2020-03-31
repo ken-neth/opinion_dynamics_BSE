@@ -100,9 +100,12 @@ extreme_start = 1
 # whether or not to calculate y metrics
 y_stats = False
 
+# previous average price
+prev_avg = 0
 # current average price
-current_avg = 100
-
+current_avg = 0
+# current default value
+D_t = 0
 
 
 # ==========================================
@@ -452,8 +455,8 @@ def trade_stats(expid, traders, dumpfile, time, lob):
                 dumpfile.write('%d, ' % (lob['asks']['best']))
         else:
                 dumpfile.write('N, ')
-        # add current_avg to dumpfile
-        dumpfile.write('%d, ' % (current_avg));
+        # add current_avg and default value to dumpfile
+        dumpfile.write('%d, %d' % (current_avg, D_t));
         dumpfile.write('\n');
 
 
@@ -922,6 +925,15 @@ def market_session(sess_id, starttime, endtime, exchange, traders, trader_stats,
         # end of an experiment -- dump the tape
         exchange.tape_dump('transactions.csv', 'w', 'keep')
 
+
+        # dividends = [0, 0.04, 0.14, 0.2]
+        dividends = [0, 1, 2, 3]
+        d_bar = float(sum(dividends)/4)
+        D_T = 40
+        global D_t
+        D_t = d_bar * (n_trials - int(sess_id[5:]) + 1) + D_T
+        print("t: %d, D_t: %d" % (int(sess_id[5:]), D_t))
+
         # write trade_stats for this experiment NB end-of-session summary only
         trade_stats(sess_id, traders, tdump, time, exchange.publish_lob(time, lob_verbose))
 
@@ -1036,7 +1048,6 @@ if __name__ == "__main__":
                odump.flush()
                trial = trial + 1
                print("!!!!!!!!!!!!!!!!!!!!!!!!!\n current_avg: %f" % current_avg)
-               current_avg = 0
         odump.close()
         tdump.close()
         sys.exit('Done Now')
