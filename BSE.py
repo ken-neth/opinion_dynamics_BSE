@@ -58,7 +58,8 @@ bse_sys_maxprice = 1000  # maximum price in the system, in cents/pennies
 ticksize = 1  # minimum change in price, in cents/pennies
 
 # population parameters
-N = 6
+N = 15
+trader_name = "ON-ZIC"
 # number of trials/time periods
 n_trials = 15
 
@@ -74,11 +75,11 @@ Max_Op = 1.0
 Min_Op = -1.0
 
 
-model_name = "BC"
+model_name = "RA"
 
 # intensity of interactions
-mu = 0.2 # used for all models eg. 0.2
-delta = 0.4 # used for Bounded Confidence Model eg. 0.1
+mu = 0 # used for all models eg. 0.2
+delta = 0.1 # used for Bounded Confidence Model eg. 0.1
 lmda = 1.0 # used for Relative Disagreement Model eg. 0.1
 
 
@@ -95,17 +96,13 @@ sims_per_point = 5
 n_dumps = 0
 
 # whether or not to start with extremes
-extreme_start = 1
+extreme_start = 0
 
 # whether or not to calculate y metrics
 y_stats = False
 
 # previous average price
 prev_avg = 0
-# current average price
-current_avg = 0
-# current default value
-D_t = 0
 
 
 # ==========================================
@@ -382,9 +379,9 @@ class Exchange(Orderbook):
                 dumpfile.close()
 
                 # store average transaction price for market session:
-                global current_avg
+                global prev_avg
                 if count_trades > 0:
-                    current_avg = sum_trades/count_trades
+                    prev_avg = sum_trades/count_trades
 
                 if tmode == 'wipe':
                         self.tape = []
@@ -456,7 +453,7 @@ def trade_stats(expid, traders, dumpfile, time, lob):
         else:
                 dumpfile.write('N, ')
         # add current_avg and default value to dumpfile
-        dumpfile.write('%d, %d' % (current_avg, D_t));
+        dumpfile.write('%d, %d' % (prev_avg, D_t));
         dumpfile.write('\n');
 
 
@@ -876,8 +873,8 @@ def market_session(sess_id, starttime, endtime, exchange, traders, trader_stats,
                 # ==========================================================
                 tid = list(traders.keys())[random.randint(0, len(traders) - 1)]
 
-                if traders[tid].ttype == 'B-ZIC':
-                    order = traders[tid].getorder(time, time_left, exchange.publish_lob(time, lob_verbose), n_trials, sess_id, current_avg)
+                if traders[tid].ttype == 'B-ZIC' or traders[tid].ttype == 'ON-ZIC':
+                    order = traders[tid].getorder(time, time_left, exchange.publish_lob(time, lob_verbose), n_trials, sess_id, prev_avg)
                 else:
                     order = traders[tid].getorder(time, time_left, exchange.publish_lob(time, lob_verbose))
 
@@ -932,7 +929,7 @@ def market_session(sess_id, starttime, endtime, exchange, traders, trader_stats,
         D_T = 40
         global D_t
         D_t = d_bar * (n_trials - int(sess_id[5:]) + 1) + D_T
-        print("t: %d, D_t: %d" % (int(sess_id[5:]), D_t))
+        # print("t: %d, D_t: %d" % (int(sess_id[5:]), D_t))
 
         # write trade_stats for this experiment NB end-of-session summary only
         trade_stats(sess_id, traders, tdump, time, exchange.publish_lob(time, lob_verbose))
@@ -994,7 +991,7 @@ if __name__ == "__main__":
                        'interval':30, 'timemode':'periodic'}
 
         # buyers_spec = [('GVWY',10),('SHVR',10),('ZIC',10),('ZIP',10)]
-        buyers_spec = [('B-ZIC', N)]
+        buyers_spec = [(trader_name, N)]
         sellers_spec = buyers_spec
         traders_spec = {'sellers':sellers_spec, 'buyers':buyers_spec}
 
@@ -1047,7 +1044,6 @@ if __name__ == "__main__":
                tdump.flush()
                odump.flush()
                trial = trial + 1
-               print("!!!!!!!!!!!!!!!!!!!!!!!!!\n current_avg: %f" % current_avg)
         odump.close()
         tdump.close()
         sys.exit('Done Now')
