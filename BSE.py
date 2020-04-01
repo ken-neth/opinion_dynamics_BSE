@@ -58,7 +58,7 @@ bse_sys_maxprice = 1000  # maximum price in the system, in cents/pennies
 ticksize = 1  # minimum change in price, in cents/pennies
 
 # population parameters
-N = 15
+N = 31
 trader_name = "ON-ZIC"
 # number of trials/time periods
 n_trials = 15
