@@ -59,9 +59,9 @@ ticksize = 1  # minimum change in price, in cents/pennies
 
 # population parameters
 N = 31
-trader_name = "ON-ZIC"
+trader_name = "ZIC"
 # number of trials/time periods
-n_trials = 15
+n_trials = 1
 
 u_min = 0.2
 u_max = 2.0
@@ -78,8 +78,8 @@ Min_Op = -1.0
 model_name = "RA"
 
 # intensity of interactions
-mu = 0 # used for all models eg. 0.2
-delta = 0.1 # used for Bounded Confidence Model eg. 0.1
+mu = 0.4 # used for all models eg. 0.2
+delta = 0.2 # used for Bounded Confidence Model eg. 0.1
 lmda = 1.0 # used for Relative Disagreement Model eg. 0.1
 
 
@@ -104,6 +104,7 @@ y_stats = False
 # previous average price
 prev_avg = 0
 
+D_t = 0
 
 # ==========================================
 #       class order is in traders.py
@@ -838,6 +839,7 @@ def market_session(sess_id, starttime, endtime, exchange, traders, trader_stats,
 
         extremes_made = 0 # extremes half way through
 
+        current_time = 0
         while time < endtime:
                 # ==========================================================
                 #           how much time left, as a percentage?
@@ -907,7 +909,10 @@ def market_session(sess_id, starttime, endtime, exchange, traders, trader_stats,
                 # ======================================================
                 #           Communicate and update opinions
                 # ======================================================
-                opinion_stats(sess_id, traders, opfile, time)
+
+                if time > current_time:
+                    opinion_stats(sess_id, traders, opfile, time)
+                    current_time += 1
 
                 if model_name == "BC":
                     bounded_confidence_step(mu, delta, time, traders)
