@@ -54,7 +54,7 @@ from models import bounded_confidence_step, relative_agreement_step, relative_di
 from ymetric import calc_y, calc_y_stats
 
 bse_sys_minprice = 1  # minimum price in the system, in cents/pennies
-bse_sys_maxprice = 1000  # maximum price in the system, in cents/pennies
+bse_sys_maxprice = 500  # maximum price in the system, in cents/pennies
 ticksize = 1  # minimum change in price, in cents/pennies
 
 # population parameters
@@ -69,17 +69,17 @@ u_steps = 19
 #range of global proportion of extremists (pe)
 pe_min = 0.025
 # pe_max = 0.3
-pe_max = 1.0
+pe_max = 0.8
 pe_steps = 12
-Max_Op = 1.0
-Min_Op = -1.0
+Max_Op = 1
+Min_Op = -1
 
 
-model_name = "RA"
+model_name = "BC"
 
 # intensity of interactions
-mu = 0.4 # used for all models eg. 0.2
-delta = 0.2 # used for Bounded Confidence Model eg. 0.1
+mu = 0.2 # used for all models eg. 0.2
+delta = 0.25 # used for Bounded Confidence Model eg. 0.1
 lmda = 1.0 # used for Relative Disagreement Model eg. 0.1
 
 
@@ -96,7 +96,9 @@ sims_per_point = 5
 n_dumps = 0
 
 # whether or not to start with extremes
-extreme_start = 0
+extreme_start = 1
+
+extremes_half = 0 # extremes half way through
 
 # whether or not to calculate y metrics
 y_stats = False
@@ -306,7 +308,7 @@ class Exchange(Orderbook):
 
 
 
-        def process_order2(self, time, order, verbose):
+        def process_order2(self, time, order, verbose, dumpfile):
                 # receive an order and either add it to the relevant LOB (ie treat as limit order)
                 # or if it crosses the best counterparty offer, execute it (treat as a market order)
                 oprice = order.price
@@ -314,7 +316,11 @@ class Exchange(Orderbook):
                 [qid, response] = self.add_order(order, verbose)  # add it to the order lists -- overwriting any previous order
                 order.qid = qid
                 if verbose :
+
+                        dumpfile.write("%s %d," % (order.otype, oprice))
+
                         print('QUID: order.quid=%d' % order.qid)
+                        print('PRICE: %d' % oprice)
                         print('RESPONSE: %s' % response)
                 best_ask = self.asks.best_price
                 best_ask_tid = self.asks.best_tid
@@ -390,7 +396,7 @@ class Exchange(Orderbook):
 
         # this returns the LOB data "published" by the exchange,
         # i.e., what is accessible to the traders
-        def publish_lob(self, time, verbose):
+        def publish_lob(self, time, verbose, dumpfile):
                 public_data = {}
                 public_data['time'] = time
                 public_data['bids'] = {'best':self.bids.best_price,
@@ -404,6 +410,23 @@ class Exchange(Orderbook):
                 public_data['QID'] = self.quote_id
                 public_data['tape'] = self.tape
                 if verbose:
+
+                        dumpfile.write('%06d,' % (time))
+
+                        dumpfile.write("BID_lob,")
+                        for bid in public_data['bids']['lob']:
+                            # bid[0] = quote
+                            # bid[1] = quantity
+                            dumpfile.write("%s, %s," % (bid[0], bid[1]))
+
+                        dumpfile.write("ASK_lob,")
+                        for ask in public_data['asks']['lob']:
+                            # bid[0] = quote
+                            # bid[1] = quantity
+                            dumpfile.write("%s, %s," % (ask[0], ask[1]))
+
+                        dumpfile.write("\n")
+
                         print('publish_lob: t=%d' % time)
                         print('BID_lob=%s' % public_data['bids']['lob'])
                         # print('best=%s; worst=%s; n=%s ' % (self.bids.best_price, self.bids.worstprice, self.bids.n_orders))
@@ -625,7 +648,7 @@ def populate_market(traders_spec, traders, shuffle, verbose, model):
 # the interface on this is a bit of a mess... could do with refactoring
 
 
-def customer_orders(time, last_update, traders, trader_stats, os, pending, verbose):
+def customer_orders(time, last_update, traders, trader_stats, os, pending, verbose, dumpfile):
 
 
         def sysmin_check(price):
@@ -787,7 +810,9 @@ def customer_orders(time, last_update, traders, trader_stats, os, pending, verbo
                                 # issue it to the trader
                                 tname = order.tid
                                 response = traders[tname].add_order(order, verbose)
-                                if verbose: print('Customer order: %s %s' % (response, order) )
+                                if verbose:
+                                    print('Customer order: %s %s' % (response, order))
+
                                 if response == 'LOB_Cancel' :
                                     cancellations.append(tname)
                                     if verbose: print('Cancellations: %s' % (cancellations))
@@ -829,15 +854,14 @@ def market_session(sess_id, starttime, endtime, exchange, traders, trader_stats,
 
         orders_verbose = False
         lob_verbose = False
-        process_verbose = False
+        lobdump=open('lob.csv','w')
+        process_verbose = True
         respond_verbose = False
         bookkeep_verbose = False
 
         pending_cust_orders = []
 
         if verbose: print('\n%s;  ' % (sess_id))
-
-        extremes_made = 0 # extremes half way through
 
         current_time = 0
         while time < endtime:
@@ -848,7 +872,7 @@ def market_session(sess_id, starttime, endtime, exchange, traders, trader_stats,
 
                 # if verbose: print('\n\n%s; t=%08.2f (%4.1f/100) ' % (sess_id, time, time_left*100))
 
-                if ((endtime - time) < duration / 2) and extremes_made == 1:
+                if ((endtime - time) < duration / 2) and extremes_half == 1:
                     print("extremed made")
                     init_extremes(pei, traders)
                     extremes_made = False
@@ -858,7 +882,7 @@ def market_session(sess_id, starttime, endtime, exchange, traders, trader_stats,
                 #    distribute any new customer orders to the traders
                 # ==========================================================
                 [pending_cust_orders, kills] = customer_orders(time, last_update, traders, trader_stats,
-                                                 order_schedule, pending_cust_orders, orders_verbose)
+                                                 order_schedule, pending_cust_orders, orders_verbose, lobdump)
                 # ==========================================================
                 # if any newly-issued customer orders mean quotes on the LOB need to be cancelled, kill them
                 # ==========================================================
@@ -876,9 +900,9 @@ def market_session(sess_id, starttime, endtime, exchange, traders, trader_stats,
                 tid = list(traders.keys())[random.randint(0, len(traders) - 1)]
 
                 if traders[tid].ttype == 'B-ZIC' or traders[tid].ttype == 'ON-ZIC':
-                    order = traders[tid].getorder(time, time_left, exchange.publish_lob(time, lob_verbose), n_trials, sess_id, prev_avg)
+                    order = traders[tid].getorder(time, time_left, exchange.publish_lob(time, lob_verbose, lobdump), n_trials, sess_id, prev_avg)
                 else:
-                    order = traders[tid].getorder(time, time_left, exchange.publish_lob(time, lob_verbose))
+                    order = traders[tid].getorder(time, time_left, exchange.publish_lob(time, lob_verbose, lobdump))
 
                 # if verbose: print('Trader Quote: %s' % (order))
 
@@ -889,17 +913,17 @@ def market_session(sess_id, starttime, endtime, exchange, traders, trader_stats,
                         #                send order to exchange
                         # ======================================================
                         traders[tid].n_quotes = 1
-                        trade = exchange.process_order2(time, order, process_verbose)
+                        trade = exchange.process_order2(time, order, process_verbose, lobdump)
                         if trade != None:
                                 # trade occurred,
                                 # so the counterparties update order lists and blotters
                                 traders[trade['party1']].bookkeep(trade, order, bookkeep_verbose, time)
                                 traders[trade['party2']].bookkeep(trade, order, bookkeep_verbose, time)
-                                if dump_each_trade: trade_stats(sess_id, traders, dumpfile, time, exchange.publish_lob(time, lob_verbose))
+                                if dump_each_trade: trade_stats(sess_id, traders, dumpfile, time, exchange.publish_lob(time, lob_verbose, lobdump))
                         # ======================================================
                         #        traders respond to whatever happened
                         # ======================================================
-                        lob = exchange.publish_lob(time, lob_verbose)
+                        lob = exchange.publish_lob(time, lob_verbose, lobdump)
                         for t in traders:
                                 # NB respond just updates trader's internal variables
                                 # doesn't alter the LOB, so processing each trader in
@@ -937,7 +961,8 @@ def market_session(sess_id, starttime, endtime, exchange, traders, trader_stats,
         # print("t: %d, D_t: %d" % (int(sess_id[5:]), D_t))
 
         # write trade_stats for this experiment NB end-of-session summary only
-        trade_stats(sess_id, traders, tdump, time, exchange.publish_lob(time, lob_verbose))
+        trade_stats(sess_id, traders, tdump, time, exchange.publish_lob(time, lob_verbose, lobdump))
+        lobdump.close()
 
         if model_name == "RA" and y_stats == True:
             # append y value to ys
@@ -954,7 +979,7 @@ if __name__ == "__main__":
         # set up parameters for the session
 
         start_time = 0.0
-        end_time = 240.0
+        end_time = 180.0
         duration = end_time - start_time
 
 
@@ -1011,6 +1036,7 @@ if __name__ == "__main__":
 
         filename=model_name+"opinions"+'.csv'
         odump=open(filename,'w')
+
 
         #############################
         #       y metric tests

@@ -494,12 +494,13 @@ class Trader_opinionated_ZIC(Trader):
                         if otype == 'Bid':
 
                                 opinionated_limit = int((limit * ( 1 + self.opinion) + minprice * (1 - self.opinion))/2)
-
+                                # opinionated_limit = limit
                                 # quotelimit = max(min(int(limit + self.opinion * 100), limit), minprice)
 
                                 # print("BID QUOTE: min: %d max: %d | omax-2: %d omax-1: %d" % (minprice, limit, opinionated_limit, quotelimit))
                                 # print("BID QUOTE: limit %d, minprice %d, opinionated_limit %d, quote limit %d " % (self.orders[0].price, minprice, opinionated_limit, limit))
                                 quoteprice = random.randint(minprice, opinionated_limit)
+                                # print("BID: %d %d %d" % (minprice, limit, quoteprice))
                         # seller
                         else:
 
@@ -510,6 +511,7 @@ class Trader_opinionated_ZIC(Trader):
                                 # print("ASK QUOTE: min: %d max: %d | omin-2: %d omin-1: %d" % (limit, maxprice, opinionated_limit, quotelimit))
                                 # print("ASK QUOTE: limit %d, maxprice %d, opinionated_limit %d, quote limit %d " % (self.orders[0].price, maxprice, opinionated_limit, limit))
                                 quoteprice = random.randint(opinionated_limit, maxprice)
+                                # print("ASK: %d %d %d" % (limit, maxprice, quoteprice))
                                 # NB should check it == 'Ask' and barf if not
                         order = Order(self.tid, otype, quoteprice, self.orders[0].qty, time, qid)
                         self.lastquote = order
@@ -596,6 +598,12 @@ class Trader_opinionated_near_ZIC(Trader):
                 D_T = 40.0
                 D_t = d_bar * (T - int(t[5:]) + 1) + D_T
 
+                upper = int(0.5*k*D_t*(1+self.opinion))
+
+                u_rand = random.uniform(0, upper)
+                # u_rand = 1/2 * k * D_t
+
+                opinionated_limit = ((1 - a) * u_rand) + (a * p)
 
                 minprice = lob['bids']['worst']
                 maxprice = lob['asks']['worst']
@@ -603,19 +611,28 @@ class Trader_opinionated_near_ZIC(Trader):
 
                 # buyer
                 if otype == 'Bid':
-                        upper = max(minprice, min(limit, ((1 - a)*k*D_t + (a * p))))
-                        lower = min(limit, max(minprice, (a * p)))
-                        opinionated_limit = int((upper * ( 1 + self.opinion) + lower * (1 - self.opinion))/2)
+                        limit = min(opinionated_limit, limit)
+                        limit = max(limit, minprice)
+                        quoteprice = limit
+
+                        # upper = max(minprice, min(limit, ((1 - a)*k*D_t + (a * p))))
+                        # lower = min(limit, max(minprice, (a * p)))
+                        # opinionated_limit = int((upper * ( 1 + self.opinion) + lower * (1 - self.opinion))/2)
 
                         # quoteprice = min(limit, self.balance)
-                        quoteprice = random.randint(minprice, opinionated_limit)
+                        # quoteprice = random.randint(minprice, opinionated_limit)
                 # seller
                 else:
-                        upper = max(limit, min(maxprice, ((1 - a)*k*D_t + (a * p))))
-                        lower = min(maxprice, max(limit, (a * p)))
-                        opinionated_limit = int((upper * ( 1 + self.opinion) + lower * (1 - self.opinion))/2)
+                        limit = max(opinionated_limit, limit)
+                        limit = min(limit, maxprice)
+                        quoteprice = limit
+                        # upper = max(limit, min(maxprice, ((1 - a)*k*D_t + (a * p))))
+                        # lower = min(maxprice, max(limit, (a * p)))
+                        # opinionated_limit = int((upper * ( 1 + self.opinion) + lower * (1 - self.opinion))/2)
+                        # print("ASK: lower:%d")
+
                         # quoteprice = min(limit, self.balance)
-                        quoteprice = random.randint(opinionated_limit, maxprice)
+                        # quoteprice = random.randint(opinionated_limit, maxprice)
 
                 order = Order(self.tid, otype, quoteprice, self.orders[0].qty, time, qid)
                 self.lastquote = order
