@@ -58,7 +58,7 @@ bse_sys_maxprice = 500  # maximum price in the system, in cents/pennies
 ticksize = 1  # minimum change in price, in cents/pennies
 
 # population parameters
-N = 31
+N = 20
 trader_name = "ZIC"
 # number of trials/time periods
 n_trials = 1
@@ -69,13 +69,13 @@ u_steps = 19
 #range of global proportion of extremists (pe)
 pe_min = 0.025
 # pe_max = 0.3
-pe_max = 0.8
+pe_max = 0.3
 pe_steps = 12
 Max_Op = 1
 Min_Op = -1
 
 
-model_name = "BC"
+model_name = "RA"
 
 # intensity of interactions
 mu = 0.2 # used for all models eg. 0.2
@@ -96,12 +96,12 @@ sims_per_point = 5
 n_dumps = 0
 
 # whether or not to start with extremes
-extreme_start = 1
+extreme_start = 0
 
 extremes_half = 0 # extremes half way through
 
 # whether or not to calculate y metrics
-y_stats = False
+y_stats = True
 
 # previous average price
 prev_avg = 0
@@ -855,7 +855,7 @@ def market_session(sess_id, starttime, endtime, exchange, traders, trader_stats,
         orders_verbose = False
         lob_verbose = False
         lobdump=open('lob.csv','w')
-        process_verbose = True
+        process_verbose = False
         respond_verbose = False
         bookkeep_verbose = False
 
@@ -966,6 +966,11 @@ def market_session(sess_id, starttime, endtime, exchange, traders, trader_stats,
 
         if model_name == "RA" and y_stats == True:
             # append y value to ys
+            n_extremists=pe_max*N*2
+            N_P_plus=plus_neg[0]*int(0.5+(n_extremists/sum(plus_neg)))
+            N_P_minus=plus_neg[1]*int(0.5+(n_extremists/sum(plus_neg)))
+            n_moderate=2*N-(N_P_plus+N_P_minus)
+
             ys.append(calc_y(u, pei, extreme_distance, Max_Op, Min_Op, n_moderate, traders)[2])
 
 
@@ -1042,41 +1047,44 @@ if __name__ == "__main__":
         #       y metric tests
         #############################
         # y metric array
-        # ys = []
-        # ymetricfile = 'ymetric.csv'
-        # ydump = open(ymetricfile, 'w')
-        #
-        # u_delta=(u_max-u_min)/(u_steps-1)
-        # pe_delta=(pe_max-pe_min)/(pe_steps-1)
-        #
-        # for u_i in range(u_steps):
-        #     u=u_min+(u_i*u_delta)
-        #     for pe_i in range(pe_steps):
-        #         pei=pe_min+(pe_i*pe_delta)
-        #         for sim in range(sims_per_point):
-        #             trial_id = 'trial%04d' % sim
-        #             market_session(trial_id, start_time, end_time, traders_spec, order_sched, tdump, odump, dump_all, True, model_name, ys, u, pei)
-        #             tdump.flush()
-        #             odump.flush()
-        #         # get stats on y metric trials
-        #         print(calc_y_stats(u, pei, ys, sims_per_point))
-        #         ydump.write('%f %f %f %f %f %f \n' % calc_y_stats(u, pei, ys, sims_per_point))
-        #         ys = []
-        # ydump.close()
+        ys = []
+        ymetricfile = 'ymetric.csv'
+        ydump = open(ymetricfile, 'w')
+
+        u_delta=(u_max-u_min)/(u_steps-1)
+        pe_delta=(pe_max-pe_min)/(pe_steps-1)
+
+        for u_i in range(u_steps):
+            u=u_min+(u_i*u_delta)
+            for pe_i in range(pe_steps):
+                pei=pe_min+(pe_i*pe_delta)
+                for sim in range(sims_per_point):
+                    trial_id = 'trial%04d' % sim
+                    exchange, traders, traders_stats = init_session(traders_spec, True, model_name)
+                    # market_session(trial_id, start_time, end_time, traders_spec, order_sched, tdump, odump, dump_all, True, model_name, ys, u, pei)
+                    market_session(trial_id, start_time, end_time, exchange, traders, traders_stats, order_sched, tdump, odump, dump_all, True, model_name, ys, u)
+                    print("Market session %s ended\n" %(trial_id))
+                    tdump.flush()
+                    odump.flush()
+                # get stats on y metric trials
+                print("y_stats: ", calc_y_stats(u, pei, ys, sims_per_point))
+                ydump.write('%f %f %f %f %f %f \n' % calc_y_stats(u, pei, ys, sims_per_point))
+                ys = []
+        ydump.close()
 
         #############################
         #          GENERAL
         #############################
-        exchange, traders, traders_stats = init_session(traders_spec, True, model_name)
-
-        while (trial<(n_trials+1)):
-               trial_id = 'trial%04d' % trial
-               market_session(trial_id, start_time, end_time, exchange, traders, traders_stats, order_sched, tdump, odump, dump_all, True, model_name)
-               tdump.flush()
-               odump.flush()
-               trial = trial + 1
-        odump.close()
-        tdump.close()
+        # exchange, traders, traders_stats = init_session(traders_spec, True, model_name)
+        #
+        # while (trial<(n_trials+1)):
+        #        trial_id = 'trial%04d' % trial
+        #        market_session(trial_id, start_time, end_time, exchange, traders, traders_stats, order_sched, tdump, odump, dump_all, True, model_name)
+        #        tdump.flush()
+        #        odump.flush()
+        #        trial = trial + 1
+        # odump.close()
+        # tdump.close()
         sys.exit('Done Now')
 
 
