@@ -247,7 +247,6 @@ class Trader_Sniper(Trader):
 
 # Trader subclass ZIP
 # After Cliff 1997
-# NOTE: Kenny change init to suit opinion dynamics models
 class Trader_ZIP(Trader):
 
         # ZIP init key param-values are those used in Cliff's 1997 original HP Labs tech report
