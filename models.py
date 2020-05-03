@@ -131,22 +131,24 @@ def relative_disagreement_step_mix(weight, prob, traders):
 
     # update with prob λ
     if random.random() <= prob:
-        if (g_ji > u_j) :
-            RD_ji = (g_ji / u_j) - 1
+        if (g_ji > u_j):
+            RD_ji = 0
+            if u_j != 0: RD_ji = (g_ji / u_j) - 1
             traders[i].set_opinion( X_i - (weight * RD_ji * (X_j - X_i)) )
             traders[i].set_uncertainty(u_i + (weight * RD_ji * (u_j - u_i)))
-        if (g_ij > u_i) :
-            RD_ij = (g_ij / u_i) - 1
+        if (g_ij > u_i):
+            RD_ij = 0
+            if u_i != 0: RD_ij = (g_ij / u_i) - 1
             traders[j].set_opinion( X_j - (weight * RD_ij * (X_i - X_j)) )
             traders[j].set_uncertainty(u_j + (weight * RD_ij * (u_i - u_j)))
         # update
-        if (h_ji > u_j) :
-            RA_ji = (h_ji / u_j) - 1
-            traders[i].set_opinion( X_i + (weight * RA_ji * (X_j - X_i)) )
-            traders[i].set_uncertainty(u_i + (weight * RA_ji * (u_j - u_i)))
-        if (h_ij > u_i) :
-            RA_ij = (h_ij / u_i) - 1
-            traders[j].set_opinion( X_j + (weight * RA_ij * (X_i - X_j)) )
-            traders[j].set_uncertainty(u_j + (weight * RA_ij * (u_i - u_j)))
+    if (h_ji > u_j) :
+        RA_ji = (h_ji / u_j) - 1
+        traders[i].set_opinion( X_i + (weight * RA_ji * (X_j - X_i)) )
+        traders[i].set_uncertainty(u_i + (weight * RA_ji * (u_j - u_i)))
+    if (h_ij > u_i) :
+        RA_ij = (h_ij / u_i) - 1
+        traders[j].set_opinion( X_j + (weight * RA_ij * (X_i - X_j)) )
+        traders[j].set_uncertainty(u_j + (weight * RA_ij * (u_i - u_j)))
 
     inc_n_iter([traders[i], traders[j]])

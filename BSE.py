@@ -58,36 +58,38 @@ bse_sys_maxprice = 500  # maximum price in the system, in cents/pennies
 ticksize = 1  # minimum change in price, in cents/pennies
 
 # population parameters
-N = 20
-trader_name = "ZIC"
+N = 100
+trader_name = "ON-ZIC"
 # number of trials/time periods
-n_trials = 1
+n_trials = 15
 
-u_min = 0.2
-u_max = 2.0
+# u_min = 0.2
+u_min = 1.2
+u_max = 2
 u_steps = 19
 #range of global proportion of extremists (pe)
 pe_min = 0.025
 # pe_max = 0.3
-pe_max = 0.3
+pe_max = 0.1
 pe_steps = 12
 Max_Op = 1
 Min_Op = -1
 
 
-model_name = "RA"
+model_name = "RD"
 
 # intensity of interactions
-mu = 0.2 # used for all models eg. 0.2
-delta = 0.25 # used for Bounded Confidence Model eg. 0.1
-lmda = 1.0 # used for Relative Disagreement Model eg. 0.1
+mu = 0.4# used for all models eg. 0.2
+delta = 0.25# used for Bounded Confidence Model eg. 0.1
+lmda = 0.4 # used for Relative Disagreement Model eg. 0.1
 
 
 u_e = 0.1 # extremism uncertainty
 extreme_distance = 0.2 # how close one has to be to be an "extremist"
 Min_mod_op = Min_Op + extreme_distance
 Max_mod_op = Max_Op - extreme_distance
-plus_neg = [1, 0] # [1, 1] for both pos and neg extremes respectively
+plus_neg = [1, 1] # [1, 1] for both pos and neg extremes respectively
+
 
 
 #number of iid repetitions of the simulation at each (u,pe) point
@@ -96,7 +98,7 @@ sims_per_point = 5
 n_dumps = 0
 
 # whether or not to start with extremes
-extreme_start = 0
+extreme_start = 1
 
 extremes_half = 0 # extremes half way through
 
@@ -539,14 +541,14 @@ def init_extremes(pe, traders):
 # create a bunch of traders from traders_spec
 # returns tuple (n_buyers, n_sellers)
 # optionally shuffles the pack of buyers and the pack of sellers
-def populate_market(traders_spec, traders, shuffle, verbose, model):
+def populate_market(traders_spec, traders, shuffle, verbose, model, u):
 
         n_buyers = 0
         for bs in traders_spec['buyers']:
                 ttype = bs[0]
                 for b in range(bs[1]):
                         tname = 'B%02d' % n_buyers  # buyer i.d. string
-                        traders[tname] = trader_type(ttype, tname, Min_Op, Max_Op, u_min, u_max, model, "moderate")
+                        traders[tname] = trader_type(ttype, tname, Min_Op, Max_Op, u_min, u, model, "moderate", extreme_distance)
                         n_buyers = n_buyers + 1
 
         if n_buyers < 1:
@@ -560,7 +562,7 @@ def populate_market(traders_spec, traders, shuffle, verbose, model):
                 ttype = ss[0]
                 for s in range(ss[1]):
                         tname = 'S%02d' % n_sellers  # buyer i.d. string
-                        traders[tname] = trader_type(ttype, tname, Min_Op, Max_Op, u_min, u_max, model, "moderate")
+                        traders[tname] = trader_type(ttype, tname, Min_Op, Max_Op, u_min, u, model, "moderate", extreme_distance)
                         n_sellers = n_sellers + 1
 
         if n_sellers < 1:
@@ -822,13 +824,13 @@ def customer_orders(time, last_update, traders, trader_stats, os, pending, verbo
                                 new_pending.append(order)
         return [new_pending, cancellations]
 
-def init_session(trader_spec, verbose, model, pei=pe_max):
+def init_session(trader_spec, verbose, model, pei=pe_max, u=u_max):
         # initialise the exchange
         exchange = Exchange()
 
         # create a bunch of traders
         traders = {}
-        trader_stats = populate_market(trader_spec, traders, True, verbose, model)
+        trader_stats = populate_market(trader_spec, traders, True, verbose, model, u)
 
         # assuming shuffle is good
         # initialise extremists if RA
@@ -840,7 +842,7 @@ def init_session(trader_spec, verbose, model, pei=pe_max):
         return exchange, traders, trader_stats
 
 # one session in the market
-def market_session(sess_id, starttime, endtime, exchange, traders, trader_stats, order_schedule, dumpfile, opfile, dump_each_trade, verbose, model, ys=[], u=0, pei=pe_max):
+def market_session(sess_id, starttime, endtime, exchange, traders, trader_stats, order_schedule, dumpfile, opfile, dump_each_trade, verbose, model, ys=[], pei=pe_max):
 
         # timestep set so that can process all traders in one second
         # NB minimum interarrival time of customer orders may be much less than this!!
@@ -872,10 +874,17 @@ def market_session(sess_id, starttime, endtime, exchange, traders, trader_stats,
 
                 # if verbose: print('\n\n%s; t=%08.2f (%4.1f/100) ' % (sess_id, time, time_left*100))
 
-                if ((endtime - time) < duration / 2) and extremes_half == 1:
+                # if ((endtime - time) < duration / 2) and extremes_half == 1:
+                if (int(sess_id[5:]) == n_trials // 2) and extremes_half == 1:
+                    # switch plus_neg
+                    global plus_neg
+                    plus_neg = [abs(plus_neg[0]-1), abs(plus_neg[1]-1)]
                     print("extremed made")
                     init_extremes(pei, traders)
-                    extremes_made = False
+                    global extremes_half
+                    extremes_half = 0
+
+                # print("sess_id: ", int(sess_id[5:]))
 
                 trade = None
                 # ==========================================================
@@ -964,7 +973,7 @@ def market_session(sess_id, starttime, endtime, exchange, traders, trader_stats,
         trade_stats(sess_id, traders, tdump, time, exchange.publish_lob(time, lob_verbose, lobdump))
         lobdump.close()
 
-        if model_name == "RA" and y_stats == True:
+        if y_stats == True:
             # append y value to ys
             n_extremists=pe_max*N*2
             N_P_plus=plus_neg[0]*int(0.5+(n_extremists/sum(plus_neg)))
@@ -984,7 +993,8 @@ if __name__ == "__main__":
         # set up parameters for the session
 
         start_time = 0.0
-        end_time = 180.0
+        # end_time = 180.0
+        end_time = 225
         duration = end_time - start_time
 
 
@@ -1059,7 +1069,7 @@ if __name__ == "__main__":
         #         pei=pe_min+(pe_i*pe_delta)
         #         for sim in range(sims_per_point):
         #             trial_id = 'trial%04d' % sim
-        #             exchange, traders, traders_stats = init_session(traders_spec, True, model_name)
+        #             exchange, traders, traders_stats = init_session(traders_spec, True, model_name, pei)
         #             # market_session(trial_id, start_time, end_time, traders_spec, order_sched, tdump, odump, dump_all, True, model_name, ys, u, pei)
         #             market_session(trial_id, start_time, end_time, exchange, traders, traders_stats, order_sched, tdump, odump, dump_all, True, model_name, ys, u)
         #             print("Market session %s ended\n" %(trial_id))

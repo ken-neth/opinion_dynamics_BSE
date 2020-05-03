@@ -1,16 +1,16 @@
 import random
 from traders import Order, Trader, Trader_Giveaway, Trader_Shaver, Trader_Sniper, Trader_ZIC, Trader_ZIP, Trader_opinionated_ZIC, Trader_Bubble_ZIC, Trader_opinionated_near_ZIC
 
-def trader_type(robottype, name, min_Op, max_Op, u_min, u_max, model, start_opinion):
+def trader_type(robottype, name, min_Op, max_Op, u_min, u_max, model, start_opinion, extreme_distance):
             opinion = 0.5
             uncertainty = 1.0
             if model == 'BC':
-                opinion = random.uniform(min_Op, max_Op)
+                opinion = random.uniform(min_Op+extreme_distance, max_Op-extreme_distance)
             elif model == 'RA':
-                opinion = random.uniform(min_Op, max_Op)
+                opinion = random.uniform(min_Op+extreme_distance, max_Op-extreme_distance)
                 uncertainty = random.uniform(u_min, u_max)
             elif model == 'RD':
-                opinion = random.uniform(min_Op, max_Op)
+                opinion = random.uniform(min_Op+extreme_distance, max_Op-extreme_distance)
                 uncertainty = random.uniform(u_min, u_max)
                 # uncertainty = min((random.uniform(0.2, 2.0) + random.uniform(0, 1)), 2)
             else:
