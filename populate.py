@@ -28,10 +28,10 @@ def trader_type(robottype, name, min_Op, max_Op, u_min, u_max, model, start_opin
                     return Trader_ZIP('ZIP', name, 0.00, 0, opinion, uncertainty, min_Op, max_Op, start_opinion)
             elif robottype == 'O-ZIC':
                     return Trader_opinionated_ZIC('O-ZIC', name, 0.00, 0, opinion, uncertainty, min_Op, max_Op, start_opinion)
-            elif robottype == 'B-ZIC':
-                    return Trader_Bubble_ZIC('B-ZIC', name, 0.00, 0, opinion, uncertainty, min_Op, max_Op, start_opinion)
-            elif robottype == 'ON-ZIC':
-                    return Trader_opinionated_near_ZIC('ON-ZIC', name, 0.00, 0, opinion, uncertainty, min_Op, max_Op, start_opinion)
+            elif robottype == 'NZI':
+                    return Trader_Bubble_ZIC('NZI', name, 0.00, 0, opinion, uncertainty, min_Op, max_Op, start_opinion)
+            elif robottype == 'O-NZI':
+                    return Trader_opinionated_near_ZIC('O-NZI', name, 0.00, 0, opinion, uncertainty, min_Op, max_Op, start_opinion)
             else:
                     sys.exit('FATAL: don\'t know robot type %s\n' % robottype)
 

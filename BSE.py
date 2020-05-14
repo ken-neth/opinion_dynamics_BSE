@@ -58,13 +58,14 @@ bse_sys_maxprice = 500  # maximum price in the system, in cents/pennies
 ticksize = 1  # minimum change in price, in cents/pennies
 
 # population parameters
+# N = 100
 N = 100
-trader_name = "ON-ZIC"
+trader_name = "O-NZI"
 # number of trials/time periods
-n_trials = 15
+n_trials = 1
 
 # u_min = 0.2
-u_min = 1.2
+u_min = 0.2
 u_max = 2
 u_steps = 19
 #range of global proportion of extremists (pe)
@@ -79,9 +80,9 @@ Min_Op = -1
 model_name = "RD"
 
 # intensity of interactions
-mu = 0.4# used for all models eg. 0.2
+mu = 0.2 # used for all models eg. 0.2
 delta = 0.25# used for Bounded Confidence Model eg. 0.1
-lmda = 0.4 # used for Relative Disagreement Model eg. 0.1
+lmda = 1 # used for Relative Disagreement Model eg. 0.1
 
 
 u_e = 0.1 # extremism uncertainty
@@ -908,7 +909,7 @@ def market_session(sess_id, starttime, endtime, exchange, traders, trader_stats,
                 # ==========================================================
                 tid = list(traders.keys())[random.randint(0, len(traders) - 1)]
 
-                if traders[tid].ttype == 'B-ZIC' or traders[tid].ttype == 'ON-ZIC':
+                if traders[tid].ttype == 'NZI' or traders[tid].ttype == 'O-NZI':
                     order = traders[tid].getorder(time, time_left, exchange.publish_lob(time, lob_verbose, lobdump), n_trials, sess_id, prev_avg)
                 else:
                     order = traders[tid].getorder(time, time_left, exchange.publish_lob(time, lob_verbose, lobdump))
@@ -994,7 +995,7 @@ if __name__ == "__main__":
 
         start_time = 0.0
         # end_time = 180.0
-        end_time = 225
+        end_time = 180
         duration = end_time - start_time
 
 

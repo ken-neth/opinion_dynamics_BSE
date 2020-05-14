@@ -25,7 +25,7 @@ At the top of the file "BSE.py", parameters can be specified for the simulations
 ### Population parameters
 
 Specify the size of the population (2N), the trader type, and number of market sessions in the simulation.
-Trader types include: "GVWY", "ZIC", "SHVR", "SNPR", "ZIP", "O-ZIC", "B-ZIC", "ON-ZIC".
+Trader types include: "GVWY", "ZIC", "SHVR", "SNPR", "ZIP", "O-ZIC", "NZI", "O-NZI".
 
 | Trader name   | Behaviour     |
 | :------------- |:-------------|
@@ -35,13 +35,13 @@ Trader types include: "GVWY", "ZIC", "SHVR", "SNPR", "ZIP", "O-ZIC", "B-ZIC", "O
 | "SNPR" | "Lurks" until time remaining < threshold of the trading session then gets increasingly aggressive, increasing "shave thickness" as time runs out     |
 | "ZIP" | After Cliff 1997. ZIP init key param-values are those used in Cliff's 1997 original HP Labs tech report|
 | "O-ZIC"| Opinionated ZIC trader. Uses opinion to set limit price proportionally|
-| "B-ZIC"| Bubble ZIC trader. Based on ["Asset Price Bubbles and Crashes with Near-Zero-Intelligence Traders"](https://doi.org/10.1007/s00199-004-0570-9) by Duffy, J. and Utku Ünver, M.|
-| "ON-ZIC"| Opinionated Near ZIC trader. B-ZIC but uses opinion to set limit price proportionally|
+| "NZI"| Near ZI trader. Based on ["Asset Price Bubbles and Crashes with Near-Zero-Intelligence Traders"](https://doi.org/10.1007/s00199-004-0570-9) by Duffy, J. and Utku Ünver, M.|
+| "O-NZI"| Opinionated Near ZIC trader. B-ZIC but uses opinion to set limit price proportionally|
 
 ```python
 N = 20 # assumes symmetry, this specifies the number of buyers and sellers respectively
-trader_name = "ZIC" # trader names include: "O-ZIC", "ON-ZIC", etcetera (see populate.py)
-n_trials = 1  # number of market sessions in simulation (important for ON-ZIC)
+trader_name = "ZIC" # trader names include: "O-ZIC", "O-NZI", etcetera (see populate.py)
+n_trials = 1  # number of market sessions in simulation (important for O-NZI)
 ```
 
 ### Opinion Dynamics parameters
